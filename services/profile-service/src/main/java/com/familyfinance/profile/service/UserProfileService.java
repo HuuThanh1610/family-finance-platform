@@ -1,12 +1,12 @@
 package com.familyfinance.profile.service;
 
+import com.familyfinance.profile.dto.UpdateProfileRequest;
 import com.familyfinance.profile.dto.UserProfileResponse;
 import com.familyfinance.profile.entity.UserProfile;
 import com.familyfinance.profile.exception.ResourceNotFoundException;
 import com.familyfinance.profile.repository.UserProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.util.List;
 import java.util.UUID;
@@ -16,33 +16,40 @@ import java.util.UUID;
 public class UserProfileService {
 
     private final UserProfileRepository repository;
+    private final UserProfileMapper mapper;
 
-    public UserProfileService(UserProfileRepository repository) {
+    public UserProfileService(UserProfileRepository repository, UserProfileMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     public List<UserProfileResponse> findAll() {
-        return repository.findAll().stream().map(this::toResponse).toList();
+        return repository.findAll().stream().map(mapper::toResponse).toList();
     }
 
     public UserProfileResponse findById(UUID id) {
-        return repository.findById(id).map(this::toResponse)
+        return repository.findById(id).map(mapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("UserProfile", id));
     }
 
-        private UserProfileResponse toResponse(UserProfile entity) {
-        return new UserProfileResponse(
-                entity.getId(),
-                entity.getKeycloakSub(),
-                entity.getEmail(),
-                entity.getDisplayName(),
-                entity.getPhone(),
-                entity.getAvatarUrl(),
-                entity.getLocale(),
-                entity.getTimezone(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+    public UserProfileResponse toResponse(UserProfile profile) {
+        return mapper.toResponse(profile);
+    }
+
+    @Transactional
+    public UserProfileResponse updateProfile(UserProfile profile, UpdateProfileRequest request) {
+        profile.setDisplayName(request.displayName().trim());
+        profile.setPhone(blankToNull(request.phone()));
+        profile.setAvatarUrl(blankToNull(request.avatarUrl()));
+        profile.setLocale(request.locale().trim());
+        profile.setTimezone(request.timezone().trim());
+        return mapper.toResponse(repository.save(profile));
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }
