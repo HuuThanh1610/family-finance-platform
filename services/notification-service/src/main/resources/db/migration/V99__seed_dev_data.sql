@@ -20,7 +20,7 @@ VALUES
 
 INSERT INTO notifications (id, recipient_user_id, family_id, template_key, channel, title, body, status)
 VALUES (
-    'k1000000-0000-4000-8000-000000000001',
+    '15000000-0000-4000-8000-000000000001',
     'b1000000-0000-4000-8000-000000000003',
     'a1000000-0000-4000-8000-000000000001',
     'ALLOWANCE_APPROVED',
@@ -31,4 +31,4 @@ VALUES (
 );
 
 INSERT INTO notification_deliveries (notification_id, attempt_no, provider, status)
-VALUES ('k1000000-0000-4000-8000-000000000001', 1, 'IN_APP_MOCK', 'DELIVERED');
+VALUES ('15000000-0000-4000-8000-000000000001', 1, 'IN_APP_MOCK', 'DELIVERED');
