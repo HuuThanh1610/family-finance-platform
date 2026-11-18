@@ -16,12 +16,27 @@ spring:
   flyway:
     enabled: true
 
-kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-  consumer:
-    group-id: ${KAFKA_CONSUMER_GROUP:${spring.application.name}}
-    auto-offset-reset: earliest
-  # TODO: Kafka consumers/producers & outbox relay — reserved learning topic
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:wallet-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      auto-startup: ${familyfinance.kafka.enabled:false}
+
+familyfinance:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    topics:
+      payment-events: payment.provider.events
+  outbox:
+    poll-interval-ms: 2000
+
 server:
   port: ${SERVER_PORT:8083}
 

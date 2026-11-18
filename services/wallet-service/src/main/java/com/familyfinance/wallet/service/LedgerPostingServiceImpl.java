@@ -165,21 +165,33 @@ public class LedgerPostingServiceImpl implements LedgerPostingService {
         }
 
         OutboxEvent outbox = new OutboxEvent();
-        outbox.setEventType("wallet.ledger.posted");
+        outbox.setEventType(resolveOutboxEventType(command.transactionType()));
         outbox.setAggregateType("ledger_transaction");
         outbox.setAggregateId(saved.getId());
-        outbox.setPayload(Map.of(
-                "transactionId", saved.getId().toString(),
-                "familyId", command.familyId().toString(),
-                "referenceId", command.referenceId(),
-                "transactionType", command.transactionType(),
-                "amountDebit", debitSum
-        ));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("transactionId", saved.getId().toString());
+        payload.put("familyId", command.familyId().toString());
+        if (command.primaryWalletId() != null) {
+            payload.put("walletId", command.primaryWalletId().toString());
+        }
+        payload.put("referenceId", command.referenceId());
+        payload.put("transactionType", command.transactionType());
+        payload.put("amount", debitSum);
+        outbox.setPayload(payload);
         outbox.setCreatedAt(now);
         outbox.setStatus("PENDING");
         outboxEventRepository.save(outbox);
 
         return saved;
+    }
+
+    private static String resolveOutboxEventType(String transactionType) {
+        return switch (transactionType) {
+            case "PAYMENT_TOPUP" -> "WalletCreditPosted";
+            case "INTERNAL_TRANSFER" -> "WalletTransferPosted";
+            case "EXPENSE_PAYMENT" -> "WalletDebitPosted";
+            default -> "wallet.ledger.posted";
+        };
     }
 
     @Override
