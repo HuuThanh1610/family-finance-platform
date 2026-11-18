@@ -3,13 +3,12 @@ package com.familyfinance.wallet.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.UUID;
-import java.util.Map;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -42,5 +41,4 @@ public class OutboxEvent {
 
     @Column(nullable = false, length = 32)
     private String status = "PENDING";
-
 }

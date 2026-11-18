@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
@@ -25,6 +24,7 @@ public class WalletBalance {
     @Column(name = "balance_amount", nullable = false)
     private Long balanceAmount = 0L;
 
+    @Version
     @Column(nullable = false)
     private Integer version = 0;
 
@@ -33,5 +33,4 @@ public class WalletBalance {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
 }

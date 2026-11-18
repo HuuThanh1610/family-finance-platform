@@ -5,7 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -18,14 +19,17 @@ public class LedgerTransaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "wallet_account_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wallet_account_id")
     private WalletAccount walletAccount;
 
-    @Column(name = "reference_id", nullable = false, length = 128)
+    @Column(name = "family_id")
+    private UUID familyId;
+
+    @Column(name = "reference_id", nullable = false, length = 128, unique = true)
     private String referenceId;
 
-    @Column(name = "idempotency_key", nullable = false, length = 128)
+    @Column(name = "idempotency_key", nullable = false, length = 128, unique = true)
     private String idempotencyKey;
 
     @Column(length = 500)
@@ -40,4 +44,6 @@ public class LedgerTransaction {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LedgerEntry> entries = new ArrayList<>();
 }

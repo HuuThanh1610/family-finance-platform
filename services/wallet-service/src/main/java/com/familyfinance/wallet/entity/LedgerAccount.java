@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
@@ -18,9 +17,12 @@ public class LedgerAccount {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "wallet_account_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wallet_account_id")
     private WalletAccount walletAccount;
+
+    @Column(name = "family_id")
+    private UUID familyId;
 
     @Column(name = "account_code", nullable = false, length = 64)
     private String accountCode;
@@ -39,5 +41,4 @@ public class LedgerAccount {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
 }
