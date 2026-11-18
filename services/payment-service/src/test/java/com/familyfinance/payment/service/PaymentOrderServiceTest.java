@@ -1,5 +1,6 @@
 package com.familyfinance.payment.service;
 
+import com.familyfinance.payment.config.PaymentProviderProperties;
 import com.familyfinance.payment.domain.PaymentStatus;
 import com.familyfinance.payment.entity.OutboxEvent;
 import com.familyfinance.payment.entity.PaymentAttempt;
@@ -50,12 +51,15 @@ class PaymentOrderServiceTest {
 
     @BeforeEach
     void setUp() {
+        PaymentProviderProperties providerProperties = new PaymentProviderProperties();
+        providerProperties.setActive("fake");
         service = new PaymentOrderService(
                 repository,
                 attemptRepository,
                 providerTransactionRepository,
                 outboxEventRepository,
-                Map.of());
+                Map.of(),
+                providerProperties);
     }
 
     @Test

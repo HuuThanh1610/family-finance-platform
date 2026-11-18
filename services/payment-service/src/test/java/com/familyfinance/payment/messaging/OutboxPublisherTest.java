@@ -33,7 +33,8 @@ class OutboxPublisherTest {
 
     @BeforeEach
     void setUp() {
-        publisher = new OutboxPublisher(outboxEventRepository, kafkaTemplate, new ObjectMapper());
+        publisher = new OutboxPublisher(
+                outboxEventRepository, kafkaTemplate, new ObjectMapper(), "payment.provider.events");
     }
 
     @Test

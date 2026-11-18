@@ -12,7 +12,7 @@ public record CreatePaymentRequest(
         @NotNull UUID walletId,
         @NotNull @Positive Long amount,
         @NotBlank String purpose,
-        @NotBlank String providerCode,
+        String providerCode,
         String externalReference
 ) {
 }

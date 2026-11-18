@@ -47,7 +47,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/api/v1/payments/momo/ipn").permitAll()
+                        .requestMatchers("/api/v1/payments/momo/ipn", "/api/v1/payments/fake/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtConverter())));
         return http.build();

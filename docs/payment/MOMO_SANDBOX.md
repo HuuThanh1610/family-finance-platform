@@ -49,6 +49,8 @@ Provider success ≠ wallet credited. Wallet Service consumes `PaymentProviderPa
 ## Automated tests without credentials
 
 - `FakePaymentAdapter` (`providerCode=FAKE_PAYMENT`)
+- Simulate paid: `POST /api/v1/payments/fake/ipn` body `{"orderId":"<uuid>"}` (no MoMo)
+- Default provider: env `PAYMENT_PROVIDER=fake` → omit `providerCode` on create payment
 - `MoMoSandboxAdapter` + MockWebServer / WireMock
 - Signature unit tests
 

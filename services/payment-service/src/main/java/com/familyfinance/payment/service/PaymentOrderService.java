@@ -1,5 +1,6 @@
 package com.familyfinance.payment.service;
 
+import com.familyfinance.payment.config.PaymentProviderProperties;
 import com.familyfinance.payment.domain.PaymentOrderStateMachine;
 import com.familyfinance.payment.domain.PaymentStatus;
 import com.familyfinance.payment.dto.CreatePaymentRequest;
@@ -17,6 +18,7 @@ import com.familyfinance.payment.repository.OutboxEventRepository;
 import com.familyfinance.payment.repository.PaymentAttemptRepository;
 import com.familyfinance.payment.repository.PaymentOrderRepository;
 import com.familyfinance.payment.repository.ProviderTransactionRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,17 +41,20 @@ public class PaymentOrderService {
     private final ProviderTransactionRepository providerTransactionRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final Map<String, PaymentProvider> paymentProviders;
+    private final PaymentProviderProperties paymentProviderProperties;
 
     public PaymentOrderService(PaymentOrderRepository repository,
                                PaymentAttemptRepository attemptRepository,
                                ProviderTransactionRepository providerTransactionRepository,
                                OutboxEventRepository outboxEventRepository,
-                               Map<String, PaymentProvider> paymentProviders) {
+                               @Qualifier("paymentProviders") Map<String, PaymentProvider> paymentProviders,
+                               PaymentProviderProperties paymentProviderProperties) {
         this.repository = repository;
         this.attemptRepository = attemptRepository;
         this.providerTransactionRepository = providerTransactionRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.paymentProviders = paymentProviders;
+        this.paymentProviderProperties = paymentProviderProperties;
     }
 
     @Transactional(readOnly = true)
@@ -65,9 +70,10 @@ public class PaymentOrderService {
 
     @Transactional
     public CreatePaymentResponse create(CreatePaymentRequest request) {
-        PaymentProvider provider = paymentProviders.get(request.providerCode());
+        String providerCode = resolveProviderCode(request.providerCode());
+        PaymentProvider provider = paymentProviders.get(providerCode);
         if (provider == null) {
-            throw new BusinessException("Unknown payment provider: " + request.providerCode(), HttpStatus.BAD_REQUEST);
+            throw new BusinessException("Unknown payment provider: " + providerCode, HttpStatus.BAD_REQUEST);
         }
 
         Instant now = Instant.now();
@@ -276,6 +282,13 @@ public class PaymentOrderService {
         txn.setRecordedAt(now);
         txn.setCreatedAt(now);
         providerTransactionRepository.save(txn);
+    }
+
+    private String resolveProviderCode(String requested) {
+        if (requested != null && !requested.isBlank()) {
+            return requested.trim();
+        }
+        return paymentProviderProperties.activeProviderCode();
     }
 
     private static String truncate(String message) {

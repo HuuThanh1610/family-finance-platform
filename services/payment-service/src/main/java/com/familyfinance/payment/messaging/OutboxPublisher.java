@@ -5,6 +5,7 @@ import com.familyfinance.payment.repository.OutboxEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,15 +25,18 @@ public class OutboxPublisher {
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final String paymentEventsTopic;
 
     public OutboxPublisher(
             OutboxEventRepository outboxEventRepository,
             KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            @Value("${familyfinance.kafka.topics.payment-events:payment.provider.events}") String paymentEventsTopic
     ) {
         this.outboxEventRepository = outboxEventRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.paymentEventsTopic = paymentEventsTopic;
     }
 
     @Scheduled(fixedDelayString = "${familyfinance.outbox.poll-interval-ms:2000}")
@@ -55,7 +59,7 @@ public class OutboxPublisher {
                 if (event.getPayload() != null && event.getPayload().get("walletId") != null) {
                     key = event.getPayload().get("walletId").toString();
                 }
-                kafkaTemplate.send("payment.provider.events", key, objectMapper.writeValueAsString(message)).get();
+                kafkaTemplate.send(paymentEventsTopic, key, objectMapper.writeValueAsString(message)).get();
                 event.setStatus("PUBLISHED");
                 event.setPublishedAt(Instant.now());
                 outboxEventRepository.save(event);

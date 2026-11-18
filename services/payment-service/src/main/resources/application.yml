@@ -4,6 +4,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/family-finance}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
           audiences: ${KEYCLOAK_AUDIENCE:account,family-finance-web}
   application:
     name: payment-service
@@ -41,10 +42,13 @@ familyfinance:
   kafka:
     enabled: ${KAFKA_ENABLED:false}
     topics:
+      payment-events: payment.provider.events
       wallet-ledger: wallet.ledger.events
   outbox:
     poll-interval-ms: 2000
   payment:
+    provider:
+      active: ${PAYMENT_PROVIDER:fake}
     recovery:
       webhook-poll-ms: 5000
 
@@ -52,6 +56,12 @@ server:
   port: ${SERVER_PORT:8084}
 
 management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
   endpoints:
     web:
       exposure:

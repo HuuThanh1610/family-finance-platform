@@ -13,7 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Configuration
-@EnableConfigurationProperties(MomoProperties.class)
+@EnableConfigurationProperties({MomoProperties.class, PaymentProviderProperties.class})
 public class PaymentProviderConfig {
 
     @Bean
