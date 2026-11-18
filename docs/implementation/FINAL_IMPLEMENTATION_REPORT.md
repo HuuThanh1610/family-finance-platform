@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-18  
 **Repo:** https://github.com/HuuThanh1610/family-finance-platform  
-**Branch:** `main` @ `0813eb3` (updates as work continues)
+**Branch:** `main` @ `4220c4a` (updates as work continues)
 
 ## 1. Final architecture
 
@@ -20,8 +20,8 @@ Microservices (Spring Boot 3.3.5 / Java 21), DB-per-service, Keycloak IdP, optio
 | budget-service | Implemented (budgets, allowance saga states + outbox) |
 | expense-service | Implemented (create + wallet payment workflow + outbox) |
 | household-service | Implemented (inventory movements + InventoryLow outbox) |
-| notification-service | Partial / in progress |
-| analytics-service | Partial / in progress |
+| notification-service | Implemented (in-app + inbox + optional Kafka) |
+| analytics-service | Implemented (CQRS projections + reports API) |
 
 ## 3. Payment & ledger
 
