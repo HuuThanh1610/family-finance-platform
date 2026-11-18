@@ -18,7 +18,7 @@ public class NotificationTemplateService {
     }
 
     public List<NotificationTemplateResponse> listActive() {
-        return repository.findByIsActiveTrueOrderByTemplateKeyAsc().stream()
+        return repository.findByActiveTrueOrderByTemplateKeyAsc().stream()
                 .map(t -> new NotificationTemplateResponse(
                         t.getId(),
                         t.getTemplateKey(),

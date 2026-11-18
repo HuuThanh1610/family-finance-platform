@@ -24,7 +24,7 @@ public class SecurityConfig {
         return http
                 .authorizeExchange(ex -> ex
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .pathMatchers("/api/v1/payments/momo/ipn").permitAll()
+                        .pathMatchers("/api/v1/payments/momo/ipn", "/api/v1/payments/fake/**").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();

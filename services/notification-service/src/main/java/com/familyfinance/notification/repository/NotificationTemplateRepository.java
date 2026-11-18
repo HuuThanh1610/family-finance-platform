@@ -9,8 +9,8 @@ import java.util.UUID;
 
 public interface NotificationTemplateRepository extends JpaRepository<NotificationTemplate, UUID> {
 
-    List<NotificationTemplate> findByIsActiveTrueOrderByTemplateKeyAsc();
+    List<NotificationTemplate> findByActiveTrueOrderByTemplateKeyAsc();
 
-    Optional<NotificationTemplate> findFirstByTemplateKeyAndChannelAndLocaleAndIsActiveTrue(
+    Optional<NotificationTemplate> findFirstByTemplateKeyAndChannelAndLocaleAndActiveTrue(
             String templateKey, String channel, String locale);
 }

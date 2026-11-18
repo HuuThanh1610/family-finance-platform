@@ -5,8 +5,11 @@ import com.familyfinance.family.service.FamilyService;
 import com.familyfinance.family.support.CurrentUserResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -27,12 +30,16 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = FamilyController.class)
+@WebMvcTest(
+        controllers = FamilyController.class,
+        excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtDecoderConfig.class)
+)
 @Import({SecurityConfig.class, CurrentUserResolver.class, InternalApiKeyFilter.class})
 @TestPropertySource(properties = {
         "familyfinance.security.enabled=true",
-        "familyfinance.internal.api-key=test-internal-key"
-})
+        "familyfinance.internal.api-key=test-internal-key",
+        })
 class SecurityFilterChainTest {
 
     @Autowired
