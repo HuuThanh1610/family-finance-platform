@@ -8,6 +8,8 @@ import com.familyfinance.profile.repository.UserProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class ProfileProvisioningService {
 
@@ -32,6 +34,13 @@ public class ProfileProvisioningService {
             throw new ConflictException("Email already registered: " + email);
         });
         UserProfile profile = new UserProfile();
+        // Align profile.id with Keycloak sub when sub is a UUID so family/wallet
+        // CurrentUserResolver (JWT sub → UUID) matches the provisioned profile.
+        try {
+            profile.setId(UUID.fromString(keycloakSub));
+        } catch (IllegalArgumentException ignored) {
+            // non-UUID subs keep GenerationType.UUID
+        }
         profile.setKeycloakSub(keycloakSub);
         profile.setEmail(email);
         profile.setDisplayName(displayName);

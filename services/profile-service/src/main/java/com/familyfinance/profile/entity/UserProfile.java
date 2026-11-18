@@ -15,7 +15,6 @@ import java.util.UUID;
 public class UserProfile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "keycloak_sub", nullable = false, length = 128)
@@ -50,6 +49,9 @@ public class UserProfile {
 
     @PrePersist
     void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
         Instant now = Instant.now();
         if (createdAt == null) {
             createdAt = now;
