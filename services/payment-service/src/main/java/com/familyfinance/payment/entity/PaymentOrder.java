@@ -24,6 +24,9 @@ public class PaymentOrder {
     @Column(name = "payer_member_id")
     private UUID payerMemberId;
 
+    @Column(name = "wallet_id")
+    private UUID walletId;
+
     @Column(nullable = false)
     private Long amount;
 

@@ -39,3 +39,12 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+momo:
+  environment: ${MOMO_ENVIRONMENT:}
+  partner-code: ${MOMO_PARTNER_CODE:}
+  access-key: ${MOMO_ACCESS_KEY:}
+  secret-key: ${MOMO_SECRET_KEY:}
+  base-url: ${MOMO_BASE_URL:https://test-payment.momo.vn}
+  redirect-url: ${MOMO_REDIRECT_URL:}
+  ipn-url: ${MOMO_IPN_URL:}
