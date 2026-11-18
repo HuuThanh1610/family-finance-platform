@@ -1,4 +1,10 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/family-finance}
+          audiences: ${KEYCLOAK_AUDIENCE:account,family-finance-web}
   application:
     name: notification-service
   datasource:
@@ -26,6 +32,8 @@ spring:
       auto-startup: ${familyfinance.kafka.enabled:false}
 
 familyfinance:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
   kafka:
     enabled: ${KAFKA_ENABLED:false}
     topics:

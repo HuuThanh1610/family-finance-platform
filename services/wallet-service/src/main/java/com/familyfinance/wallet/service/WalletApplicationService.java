@@ -21,6 +21,7 @@ import com.familyfinance.wallet.repository.LedgerEntryRepository;
 import com.familyfinance.wallet.repository.LedgerTransactionRepository;
 import com.familyfinance.wallet.repository.WalletAccountRepository;
 import com.familyfinance.wallet.repository.WalletBalanceRepository;
+import com.familyfinance.wallet.security.FamilyAuthorizationClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,7 @@ public class WalletApplicationService {
     private final LedgerTransactionRepository ledgerTransactionRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final LedgerPostingService ledgerPostingService;
+    private final FamilyAuthorizationClient familyAuthorizationClient;
 
     public WalletApplicationService(
             WalletAccountRepository walletAccountRepository,
@@ -49,7 +51,8 @@ public class WalletApplicationService {
             WalletBalanceRepository walletBalanceRepository,
             LedgerTransactionRepository ledgerTransactionRepository,
             LedgerEntryRepository ledgerEntryRepository,
-            LedgerPostingService ledgerPostingService
+            LedgerPostingService ledgerPostingService,
+            FamilyAuthorizationClient familyAuthorizationClient
     ) {
         this.walletAccountRepository = walletAccountRepository;
         this.ledgerAccountRepository = ledgerAccountRepository;
@@ -57,10 +60,12 @@ public class WalletApplicationService {
         this.ledgerTransactionRepository = ledgerTransactionRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.ledgerPostingService = ledgerPostingService;
+        this.familyAuthorizationClient = familyAuthorizationClient;
     }
 
     @Transactional
-    public WalletResponse createWallet(CreateWalletRequest request) {
+    public WalletResponse createWallet(CreateWalletRequest request, UUID userProfileId) {
+        familyAuthorizationClient.requireMember(request.familyId(), userProfileId);
         if (request.walletType() == WalletType.MEMBER_WALLET && request.ownerMemberId() == null) {
             throw new BusinessException("ownerMemberId required for MEMBER_WALLET", HttpStatus.BAD_REQUEST);
         }
@@ -101,14 +106,16 @@ public class WalletApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public WalletResponse getWallet(UUID walletId) {
+    public WalletResponse getWallet(UUID walletId, UUID userProfileId) {
         WalletAccount wallet = requireWallet(walletId);
+        familyAuthorizationClient.requireMember(wallet.getFamilyId(), userProfileId);
         return toWalletResponse(wallet, availableBalance(walletId));
     }
 
     @Transactional(readOnly = true)
-    public WalletBalanceResponse getBalance(UUID walletId) {
+    public WalletBalanceResponse getBalance(UUID walletId, UUID userProfileId) {
         WalletAccount wallet = requireWallet(walletId);
+        familyAuthorizationClient.requireMember(wallet.getFamilyId(), userProfileId);
         LedgerAccount liability = requireLiability(walletId);
         WalletBalance balance = walletBalanceRepository.findByLedgerAccountId(liability.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("WalletBalance for " + walletId));
@@ -116,15 +123,16 @@ public class WalletApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<LedgerTransactionResponse> listTransactions(UUID walletId) {
-        requireWallet(walletId);
+    public List<LedgerTransactionResponse> listTransactions(UUID walletId, UUID userProfileId) {
+        WalletAccount wallet = requireWallet(walletId);
+        familyAuthorizationClient.requireMember(wallet.getFamilyId(), userProfileId);
         return ledgerTransactionRepository.findByWalletAccountIdOrderByPostedAtDesc(walletId).stream()
                 .map(this::toTransactionResponse)
                 .toList();
     }
 
     @Transactional
-    public LedgerTransactionResponse transfer(WalletTransferRequest request) {
+    public LedgerTransactionResponse transfer(WalletTransferRequest request, UUID userProfileId) {
         if (request.sourceWalletId().equals(request.destinationWalletId())) {
             throw new BusinessException("Source and destination must differ", HttpStatus.BAD_REQUEST);
         }
@@ -143,6 +151,7 @@ public class WalletApplicationService {
 
         WalletAccount source = requireWallet(request.sourceWalletId());
         WalletAccount dest = requireWallet(request.destinationWalletId());
+        familyAuthorizationClient.requireMember(source.getFamilyId(), userProfileId);
         if (!source.getFamilyId().equals(dest.getFamilyId())) {
             throw new BusinessException("Cross-family transfer forbidden", HttpStatus.FORBIDDEN);
         }

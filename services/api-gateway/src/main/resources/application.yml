@@ -29,7 +29,7 @@ spring:
         - id: family
           uri: ${FAMILY_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/v1/families/**,/api/families/**,/internal/families/**
+            - Path=/api/v1/families/**,/api/families/**
         - id: wallet
           uri: ${WALLET_SERVICE_URL:http://localhost:8083}
           predicates:

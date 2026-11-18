@@ -1,4 +1,10 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/family-finance}
+          audiences: ${KEYCLOAK_AUDIENCE:account,family-finance-web}
   application:
     name: wallet-service
   datasource:
@@ -30,6 +36,14 @@ spring:
       auto-startup: ${familyfinance.kafka.enabled:false}
 
 familyfinance:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
+  family-auth:
+    enabled: ${FAMILY_AUTH_ENABLED:false}
+  family-service:
+    base-url: ${FAMILY_SERVICE_URL:http://localhost:8082}
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
   kafka:
     enabled: ${KAFKA_ENABLED:false}
     topics:

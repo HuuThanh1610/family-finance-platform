@@ -5,8 +5,14 @@ import com.familyfinance.profile.exception.ResourceNotFoundException;
 import com.familyfinance.profile.exception.UnauthorizedException;
 import com.familyfinance.profile.repository.UserProfileRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -15,12 +21,26 @@ public class CurrentUserResolver {
     public static final String HEADER_USER_ID = "X-User-Id";
 
     private final UserProfileRepository profileRepository;
+    private final boolean securityEnabled;
 
-    public CurrentUserResolver(UserProfileRepository profileRepository) {
+    public CurrentUserResolver(
+            UserProfileRepository profileRepository,
+            @Value("${familyfinance.security.enabled:false}") boolean securityEnabled
+    ) {
         this.profileRepository = profileRepository;
+        this.securityEnabled = securityEnabled;
     }
 
     public UserProfile requireCurrentProfile(HttpServletRequest request) {
+        Optional<UserProfile> fromJwt = resolveFromSecurityContext();
+        if (fromJwt.isPresent()) {
+            return fromJwt.get();
+        }
+
+        if (securityEnabled) {
+            throw new UnauthorizedException("Authenticated JWT required");
+        }
+
         String header = request.getHeader(HEADER_USER_ID);
         if (header != null && !header.isBlank()) {
             try {
@@ -41,5 +61,18 @@ public class CurrentUserResolver {
                             "UserProfile not found for keycloak sub: " + sub));
         }
         throw new UnauthorizedException("Missing X-User-Id or Authorization");
+    }
+
+    private Optional<UserProfile> resolveFromSecurityContext() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth instanceof JwtAuthenticationToken jwtAuth)) {
+            return Optional.empty();
+        }
+        Jwt jwt = jwtAuth.getToken();
+        String sub = jwt.getSubject();
+        if (sub == null || sub.isBlank()) {
+            return Optional.empty();
+        }
+        return profileRepository.findByKeycloakSub(sub);
     }
 }

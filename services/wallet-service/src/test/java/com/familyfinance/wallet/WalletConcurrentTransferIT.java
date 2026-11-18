@@ -57,10 +57,11 @@ class WalletConcurrentTransferIT {
     @Test
     void concurrentTransfersCannotOverspend() throws Exception {
         UUID familyId = UUID.randomUUID();
+        UUID actor = UUID.fromString("b1000000-0000-4000-8000-000000000001");
         var source = walletApplicationService.createWallet(new CreateWalletRequest(
-                familyId, null, "Source", WalletType.FAMILY_POOL));
+                familyId, null, "Source", WalletType.FAMILY_POOL), actor);
         var dest = walletApplicationService.createWallet(new CreateWalletRequest(
-                familyId, null, "Dest", WalletType.FAMILY_POOL));
+                familyId, null, "Dest", WalletType.FAMILY_POOL), actor);
 
         walletApplicationService.creditFromPayment(new TopUpCreditRequest(
                 source.id(), 100_000L, "seed-ref-" + UUID.randomUUID(), "seed-idem-" + UUID.randomUUID(), "seed"));
@@ -82,7 +83,7 @@ class WalletConcurrentTransferIT {
                             "xfer-" + idx + "-" + UUID.randomUUID(),
                             "idem-xfer-" + idx + "-" + UUID.randomUUID(),
                             "concurrent"
-                    ));
+                    ), actor);
                     success.incrementAndGet();
                 } catch (RuntimeException ex) {
                     rejected.incrementAndGet();
@@ -96,8 +97,8 @@ class WalletConcurrentTransferIT {
         }
         pool.shutdown();
 
-        long sourceBal = walletApplicationService.getBalance(source.id()).availableBalance();
-        long destBal = walletApplicationService.getBalance(dest.id()).availableBalance();
+        long sourceBal = walletApplicationService.getBalance(source.id(), actor).availableBalance();
+        long destBal = walletApplicationService.getBalance(dest.id(), actor).availableBalance();
         assertEquals(100_000L, sourceBal + destBal);
         assertTrue(sourceBal >= 0);
         assertEquals(10, success.get());

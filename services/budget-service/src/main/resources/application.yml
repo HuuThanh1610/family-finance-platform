@@ -1,4 +1,10 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/family-finance}
+          audiences: ${KEYCLOAK_AUDIENCE:account,family-finance-web}
   application:
     name: budget-service
   datasource:
@@ -39,3 +45,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+familyfinance:
+  security:
+    enabled: ${SECURITY_ENABLED:false}

@@ -169,6 +169,39 @@ class FamilyAuthorizationServiceTest {
         assertEquals(List.of("budget.approve", "expense.create"), response.permissions());
     }
 
+    @Test
+    void requireMember_blocksCrossFamilyUser() {
+        UUID otherFamily = UUID.fromString("a1000000-0000-4000-8000-000000000099");
+        when(memberRepository.existsByFamilyIdAndUserProfileIdAndStatus(
+                otherFamily, userId, FamilyConstants.MEMBER_ACTIVE))
+                .thenReturn(false);
+
+        assertThrows(ForbiddenException.class, () -> service.requireMember(otherFamily, userId));
+    }
+
+    @Test
+    void viewerCannotManageFamily() {
+        stubActiveMember(FamilyConstants.ROLE_VIEWER);
+        when(permissionRepository.existsByRoleCodeAndPermissionKey(
+                FamilyConstants.ROLE_VIEWER, FamilyConstants.PERMISSION_FAMILY_MANAGE))
+                .thenReturn(false);
+
+        assertThrows(ForbiddenException.class, () ->
+                service.requirePermission(familyId, userId, FamilyConstants.PERMISSION_FAMILY_MANAGE));
+    }
+
+    @Test
+    void childCannotReachParentRole() {
+        stubActiveMember(FamilyConstants.ROLE_CHILD);
+        when(roleRepository.findById(FamilyConstants.ROLE_CHILD))
+                .thenReturn(Optional.of(role(FamilyConstants.ROLE_CHILD, 40)));
+        when(roleRepository.findById(FamilyConstants.ROLE_PARENT))
+                .thenReturn(Optional.of(role(FamilyConstants.ROLE_PARENT, 20)));
+
+        assertThrows(ForbiddenException.class, () ->
+                service.requireRoleAtLeast(familyId, userId, FamilyConstants.ROLE_PARENT));
+    }
+
     private void stubActiveMember(String roleCode) {
         Family family = new Family();
         family.setId(familyId);
