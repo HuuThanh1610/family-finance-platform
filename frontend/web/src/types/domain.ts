@@ -1,12 +1,23 @@
 export type FamilyRole = 'OWNER' | 'PARENT' | 'ADULT_MEMBER' | 'CHILD' | 'VIEWER'
 
-export type WalletType = 'FAMILY_SHARED' | 'MEMBER_PERSONAL'
+export type WalletType = 'FAMILY_POOL' | 'MEMBER_WALLET' | 'FAMILY_SHARED' | 'MEMBER_PERSONAL'
 
 export type LedgerEntryType = 'DEBIT' | 'CREDIT'
 
-export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+export type PaymentStatus =
+  | 'CREATED'
+  | 'PENDING_PROVIDER'
+  | 'PROVIDER_PAID'
+  | 'CREDIT_PENDING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SUCCESS'
 
-export type PaymentProviderCode = 'MOMO_SANDBOX' | 'DEMO_PROVIDER'
+export type PaymentProviderCode = 'MOMO_SANDBOX' | 'FAKE_PAYMENT' | 'DEMO_PROVIDER'
 
 export type AllowanceRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 

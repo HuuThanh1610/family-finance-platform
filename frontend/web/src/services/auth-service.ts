@@ -1,6 +1,6 @@
 import { delay } from '@/lib/utils'
 import { currentUser } from '@/mocks/data'
-import { USE_MOCK, apiRequest } from '@/services/api-client'
+import { USE_MOCK, apiRequest, setAccessToken } from '@/services/api-client'
 import type { UserProfile } from '@/types/domain'
 
 const AUTH_KEY = 'ff_auth_session'
@@ -35,14 +35,18 @@ function readSession(): AuthSession | null {
 function writeSession(session: AuthSession | null) {
   if (!session) {
     localStorage.removeItem(AUTH_KEY)
+    setAccessToken(null)
     return
   }
   localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+  setAccessToken(session.token)
 }
 
 export const authService = {
   getSession(): AuthSession | null {
-    return readSession()
+    const session = readSession()
+    if (session?.token) setAccessToken(session.token)
+    return session
   },
 
   async login(input: LoginInput): Promise<AuthSession> {

@@ -27,12 +27,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-const statusVariant: Record<PaymentStatus, 'warning' | 'success' | 'danger' | 'muted' | 'info'> = {
+const statusVariant: Partial<Record<PaymentStatus, 'warning' | 'success' | 'danger' | 'muted' | 'info'>> = {
+  CREATED: 'muted',
+  PENDING_PROVIDER: 'warning',
+  PROVIDER_PAID: 'info',
+  CREDIT_PENDING: 'info',
+  COMPLETED: 'success',
+  FAILED: 'danger',
+  EXPIRED: 'muted',
+  CANCELLED: 'muted',
   PENDING: 'warning',
   PROCESSING: 'info',
   SUCCESS: 'success',
-  FAILED: 'danger',
-  CANCELLED: 'muted',
 }
 
 export function PaymentsPage() {
@@ -157,7 +163,7 @@ export function PaymentsPage() {
                   </TD>
                   <TD className="text-fg-secondary">{order.provider}</TD>
                   <TD>
-                    <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                    <Badge variant={statusVariant[order.status] ?? 'muted'}>{order.status}</Badge>
                   </TD>
                   <TD className="text-right font-medium">{formatVnd(order.amount)}</TD>
                 </TR>
