@@ -43,6 +43,12 @@ public class Expense {
     @Column(nullable = false, length = 32)
     private String status = "RECORDED";
 
+    @Column(name = "wallet_id")
+    private UUID walletId;
+
+    @Column(name = "payment_reference", length = 128)
+    private String paymentReference;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

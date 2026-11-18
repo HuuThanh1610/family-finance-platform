@@ -2,7 +2,6 @@ package com.familyfinance.expense.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ExpenseResponse(
@@ -15,6 +14,8 @@ public record ExpenseResponse(
         LocalDate expenseDate,
         String notes,
         String status,
+        UUID walletId,
+        String paymentReference,
         Instant createdAt,
         Instant updatedAt
 ) {
