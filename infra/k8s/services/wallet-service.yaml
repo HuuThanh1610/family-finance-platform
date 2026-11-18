@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-service
+  namespace: family-finance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wallet-service
+  template:
+    metadata:
+      labels:
+        app: wallet-service
+    spec:
+      containers:
+        - name: wallet-service
+          image: familyfinance/wallet-service:0.0.1-SNAPSHOT
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: family-finance-common
+          env:
+            - name: SERVER_PORT
+              value: "8083"
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/wallet_db
+            - name: DB_USER
+              value: wallet_user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: family-finance-secrets
+                  key: DB_PASSWORD_WALLET
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-service
+  namespace: family-finance
+spec:
+  selector:
+    app: wallet-service
+  ports:
+    - port: 8083
+      targetPort: 8083

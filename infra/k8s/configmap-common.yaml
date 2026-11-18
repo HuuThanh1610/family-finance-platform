@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: family-finance-common
+  namespace: family-finance
+data:
+  KEYCLOAK_ISSUER_URI: "http://keycloak:8080/realms/family-finance"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_ENABLED: "true"
+  MOMO_ENVIRONMENT: "SANDBOX"
+  MOMO_BASE_URL: "https://test-payment.momo.vn"
+  SECURITY_ENABLED: "true"
