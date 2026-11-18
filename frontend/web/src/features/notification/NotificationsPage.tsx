@@ -38,8 +38,8 @@ export function NotificationsPage() {
   return (
     <div>
       <PageHeader
-        title="Trung tâm thông báo"
-        description="Theo dõi cảnh báo ngân sách, phê duyệt và gia dụng."
+        title="Thông báo"
+        description="Cảnh báo ngân sách, phê duyệt và gia dụng."
         actions={
           <Link to="/notifications/preferences">
             <Button variant="secondary">Tuỳ chọn</Button>
@@ -47,7 +47,7 @@ export function NotificationsPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {types.map((t) => (
           <Button
             key={t}
@@ -63,7 +63,7 @@ export function NotificationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {filtered.filter((n) => !n.read).length} chưa đọc / {filtered.length} thông báo
+            {filtered.filter((n) => !n.read).length} chưa đọc / {filtered.length}
           </CardTitle>
           <Button
             size="sm"
@@ -73,26 +73,24 @@ export function NotificationsPage() {
             Đánh dấu đã đọc
           </Button>
         </CardHeader>
-        <div className="space-y-3">
+        <div className="divide-y divide-border border border-border">
           {filtered.map((n) => (
             <button
               key={n.id}
               type="button"
-              className={`w-full rounded-xl border px-3 py-3 text-left ${
-                n.read ? 'border-line bg-white' : 'border-brand-200 bg-brand-50/50'
+              className={`flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left ${
+                n.read ? 'bg-bg' : 'bg-bg-secondary'
               }`}
               onClick={() =>
                 setItems((source ?? data).map((x) => (x.id === n.id ? { ...x, read: true } : x)))
               }
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-ink">{n.title}</p>
-                  <p className="mt-1 text-sm text-muted">{n.message}</p>
-                  <p className="mt-1 text-xs text-muted">{formatDateTime(n.createdAt)}</p>
-                </div>
-                <Badge variant={n.read ? 'muted' : 'default'}>{n.type}</Badge>
+              <div>
+                <p className="text-[13px] font-medium text-fg">{n.title}</p>
+                <p className="mt-0.5 text-[13px] text-fg-secondary">{n.message}</p>
+                <p className="mt-1 text-[11px] text-fg-muted">{formatDateTime(n.createdAt)}</p>
               </div>
+              <Badge variant="muted">{n.type}</Badge>
             </button>
           ))}
         </div>

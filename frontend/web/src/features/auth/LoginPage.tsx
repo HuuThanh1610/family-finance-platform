@@ -43,43 +43,40 @@ export function LoginPage() {
   })
 
   return (
-    <AuthLayout
-      title="Đăng nhập"
-      subtitle="Quản lý tài chính gia đình một cách rõ ràng và minh bạch."
-    >
+    <AuthLayout title="Đăng nhập" subtitle="Truy cập nền tảng quản lý tài chính gia đình.">
       <Card>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-3" onSubmit={onSubmit}>
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register('email')} />
-            {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+            {errors.email ? <p className="mt-1 text-[12px] text-danger">{errors.email.message}</p> : null}
           </div>
           <div>
             <Label htmlFor="password">Mật khẩu</Label>
             <Input id="password" type="password" {...register('password')} />
             {errors.password ? (
-              <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+              <p className="mt-1 text-[12px] text-danger">{errors.password.message}</p>
             ) : null}
           </div>
-          {errors.root ? <p className="text-sm text-danger">{errors.root.message}</p> : null}
+          {errors.root ? <p className="text-[13px] text-danger">{errors.root.message}</p> : null}
           <Button className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </form>
-        <div className="mt-4 space-y-2 text-sm text-muted">
+        <div className="mt-4 space-y-2 text-[13px] text-fg-secondary">
           <p>
             Chưa có tài khoản?{' '}
-            <Link className="font-semibold text-brand-700" to="/register">
+            <Link className="font-medium text-fg underline-offset-2 hover:underline" to="/register">
               Đăng ký
             </Link>
           </p>
           <p>
-            <Link className="font-semibold text-brand-700" to="/forgot-password">
+            <Link className="font-medium text-fg underline-offset-2 hover:underline" to="/forgot-password">
               Quên mật khẩu?
             </Link>
           </p>
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Xác thực hiện tại dùng mock adapter — chưa tích hợp Keycloak/OAuth2.
+          <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[12px] text-fg-secondary">
+            Xác thực mock — chưa tích hợp Keycloak/OAuth2.
           </p>
         </div>
       </Card>
@@ -98,28 +95,25 @@ export function AuthLayout({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-brand-800 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(174,225,212,0.25),transparent_40%)]" />
-        <div className="relative">
-          <p className="font-display text-2xl font-extrabold">Family Finance</p>
-          <p className="mt-2 max-w-md text-brand-100">
-            Nền tảng quản lý ví chung, ngân sách, tiền tiêu vặt và gia dụng cho hộ gia đình Việt Nam.
+      <div className="hidden border-r border-border bg-fg p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div>
+          <p className="text-[15px] font-semibold tracking-tight">Family Finance</p>
+          <p className="mt-3 max-w-sm text-[13px] text-white/70">
+            Ví chung, ngân sách, tiền tiêu vặt và gia dụng — giao diện làm việc chuyên nghiệp.
           </p>
         </div>
-        <div className="relative space-y-3 text-sm text-brand-50">
-          <p>• Tổng hợp số dư & chi tiêu theo thành viên</p>
-          <p>• Ngân sách theo danh mục với cảnh báo vượt hạn mức</p>
-          <p>• Kho gia dụng & danh sách mua sắm</p>
-        </div>
+        <ul className="space-y-2 text-[13px] text-white/60">
+          <li>Số dư & chi tiêu theo thành viên</li>
+          <li>Ngân sách danh mục với cảnh báo vượt hạn</li>
+          <li>Kho gia dụng & danh sách mua sắm</li>
+        </ul>
       </div>
-      <div className="flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
-          <div className="mb-6">
-            <p className="mb-2 font-display text-sm font-bold text-brand-700 lg:hidden">
-              Family Finance
-            </p>
-            <h1 className="text-3xl font-extrabold text-ink">{title}</h1>
-            <p className="mt-2 text-sm text-muted">{subtitle}</p>
+      <div className="flex items-center justify-center bg-bg-secondary px-4 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-5">
+            <p className="mb-2 text-[13px] font-semibold text-fg lg:hidden">Family Finance</p>
+            <h1 className="text-[22px] font-semibold text-fg">{title}</h1>
+            <p className="mt-1 text-[13px] text-fg-secondary">{subtitle}</p>
           </div>
           {children}
         </div>

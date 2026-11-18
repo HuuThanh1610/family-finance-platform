@@ -35,21 +35,21 @@ export function ForgotPasswordPage() {
       subtitle="Nhập email để nhận hướng dẫn đặt lại mật khẩu (mô phỏng)."
     >
       <Card>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-3" onSubmit={onSubmit}>
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register('email')} />
-            {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+            {errors.email ? <p className="mt-1 text-[12px] text-danger">{errors.email.message}</p> : null}
           </div>
           {message ? (
-            <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">{message}</p>
+            <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[13px] text-fg">{message}</p>
           ) : null}
           <Button className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Đang gửi...' : 'Gửi hướng dẫn'}
           </Button>
         </form>
-        <p className="mt-4 text-sm text-muted">
-          <Link className="font-semibold text-brand-700" to="/login">
+        <p className="mt-4 text-[13px] text-fg-secondary">
+          <Link className="font-medium text-fg underline-offset-2 hover:underline" to="/login">
             Quay lại đăng nhập
           </Link>
         </p>

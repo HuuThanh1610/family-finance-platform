@@ -12,9 +12,9 @@ export function Progress({ value, max = 100, className, barClassName }: Progress
   const over = value > max
 
   return (
-    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-slate-100', className)}>
+    <div className={cn('h-1.5 w-full overflow-hidden rounded-[2px] bg-bg-tertiary', className)}>
       <div
-        className={cn('h-full rounded-full transition-all', over ? 'bg-danger' : 'bg-brand-600', barClassName)}
+        className={cn('h-full rounded-[2px] transition-all', over ? 'bg-danger' : 'bg-fg', barClassName)}
         style={{ width: `${pct}%` }}
       />
     </div>

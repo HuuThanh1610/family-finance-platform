@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDateTime, formatVnd } from '@/lib/utils'
 import { paymentApi } from '@/services/family-finance-api'
@@ -55,21 +56,20 @@ export function PaymentsPage() {
     <div>
       <PageHeader
         title="Nạp tiền"
-        description="Giao diện top-up với abstraction PaymentProvider. Không thực hiện thanh toán thật."
+        description="Top-up qua PaymentProvider abstraction. Không thực hiện thanh toán thật."
       />
 
-      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        Cảnh báo: mọi đơn nạp tiền trên trang này đều là <strong>mô phỏng</strong>. MoMo Sandbox
-        chưa được kết nối — không có credential, không có giao dịch ngân hàng.
+      <div className="mb-3 border border-border bg-bg px-3 py-2 text-[13px] text-fg-secondary">
+        Mọi đơn trên trang này đều là mô phỏng. MoMo Sandbox chưa kết nối — không có credential.
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-3 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Tạo đơn nạp (sandbox UI)</CardTitle>
+            <CardTitle>Tạo đơn nạp</CardTitle>
           </CardHeader>
           <form
-            className="space-y-4"
+            className="space-y-3"
             onSubmit={form.handleSubmit(async (values) => {
               const order = await paymentApi.createTopUp({
                 amount: values.amount,
@@ -81,8 +81,8 @@ export function PaymentsPage() {
             })}
           >
             <div>
-              <Label>Chọn số tiền nhanh</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <Label>Số tiền nhanh</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {amounts.map((amount) => (
                   <Button
                     key={amount}
@@ -100,7 +100,7 @@ export function PaymentsPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="amount">Số tiền tùy chỉnh (VND)</Label>
+              <Label htmlFor="amount">Số tiền (VND)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -110,7 +110,7 @@ export function PaymentsPage() {
                 })}
               />
               {form.formState.errors.amount ? (
-                <p className="mt-1 text-xs text-danger">{form.formState.errors.amount.message}</p>
+                <p className="mt-1 text-[12px] text-danger">{form.formState.errors.amount.message}</p>
               ) : null}
             </div>
             <div>
@@ -125,7 +125,7 @@ export function PaymentsPage() {
               <Input id="description" {...form.register('description')} />
             </div>
             {resultMsg ? (
-              <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">{resultMsg}</p>
+              <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[13px]">{resultMsg}</p>
             ) : null}
             <Button className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? 'Đang tạo...' : 'Tạo đơn mô phỏng'}
@@ -133,30 +133,37 @@ export function PaymentsPage() {
           </form>
         </Card>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Lịch sử đơn thanh toán</CardTitle>
-          </CardHeader>
-          <div className="space-y-3">
-            {data.map((order) => (
-              <div
-                key={order.id}
-                className="flex flex-col gap-2 rounded-xl border border-line px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-semibold text-ink">{order.description}</p>
-                  <p className="text-xs text-muted">
-                    {order.id} · {order.provider} · {formatDateTime(order.createdAt)}
-                  </p>
-                  {order.note ? <p className="mt-1 text-xs text-muted">{order.note}</p> : null}
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatVnd(order.amount)}</p>
-                  <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
-                </div>
-              </div>
-            ))}
+        <Card className="lg:col-span-3 !p-0 overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
+            <CardTitle>Lịch sử đơn</CardTitle>
           </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Mô tả</TH>
+                <TH>Provider</TH>
+                <TH>Trạng thái</TH>
+                <TH className="text-right">Số tiền</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {data.map((order) => (
+                <TR key={order.id}>
+                  <TD className="!tabular-nums-none">
+                    <p className="font-medium">{order.description}</p>
+                    <p className="text-[12px] text-fg-muted">
+                      {order.id} · {formatDateTime(order.createdAt)}
+                    </p>
+                  </TD>
+                  <TD className="text-fg-secondary">{order.provider}</TD>
+                  <TD>
+                    <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                  </TD>
+                  <TD className="text-right font-medium">{formatVnd(order.amount)}</TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </Card>
       </div>
     </div>

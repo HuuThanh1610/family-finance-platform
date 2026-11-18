@@ -4,7 +4,6 @@ import {
   ChartColumn,
   CreditCard,
   HandCoins,
-  Home,
   LayoutDashboard,
   Package,
   PiggyBank,
@@ -37,31 +36,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       <div
-        className={cn('fixed inset-0 z-40 bg-ink/30 lg:hidden', open ? 'block' : 'hidden')}
+        className={cn('fixed inset-0 z-40 bg-fg/30 lg:hidden', open ? 'block' : 'hidden')}
         onClick={onClose}
       />
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-white/95 backdrop-blur transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-bg transition-transform lg:static lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700 text-white">
-              <Home className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-display text-sm font-extrabold text-ink">Family Finance</p>
-              <p className="text-xs text-muted">Quản lý tài chính gia đình</p>
-            </div>
+        <div className="flex h-12 items-center justify-between border-b border-border px-3">
+          <div>
+            <p className="text-[13px] font-semibold text-fg">Family Finance</p>
+            <p className="text-[11px] text-fg-muted">Quản lý tài chính</p>
           </div>
-          <button type="button" className="rounded-lg p-2 text-muted lg:hidden" onClick={onClose}>
-            <X className="h-4 w-4" />
+          <button type="button" className="rounded-[2px] p-1.5 text-fg-secondary lg:hidden" onClick={onClose}>
+            <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -69,21 +63,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                  'flex items-center gap-2 rounded-[2px] px-2 py-1.5 text-[13px] transition-colors',
                   isActive
-                    ? 'bg-brand-50 text-brand-800'
-                    : 'text-muted hover:bg-slate-50 hover:text-ink',
+                    ? 'bg-bg-tertiary font-medium text-fg'
+                    : 'text-fg-secondary hover:bg-bg-secondary hover:text-fg',
                 )
               }
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               {item.label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-line p-4 text-xs text-muted">
-          Dữ liệu demo · Mock API · Không thanh toán thật
+        <div className="border-t border-border px-3 py-2 text-[11px] text-fg-muted">
+          Demo · Mock API
         </div>
       </aside>
     </>

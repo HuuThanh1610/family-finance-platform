@@ -8,11 +8,12 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDate, formatVnd } from '@/lib/utils'
@@ -67,12 +68,12 @@ export function ExpensesPage() {
     <div>
       <PageHeader
         title="Chi tiêu"
-        description="Danh sách chi tiêu gia đình với bộ lọc và đính kèm hóa đơn (UI)."
+        description="Danh sách chi tiêu với bộ lọc và đính kèm hóa đơn (UI)."
         actions={<Button onClick={() => setCreateOpen(true)}>Thêm chi tiêu</Button>}
       />
 
-      <Card className="mb-4">
-        <div className="grid gap-3 md:grid-cols-3">
+      <Card className="mb-3">
+        <div className="grid gap-2 md:grid-cols-3">
           <div>
             <Label>Danh mục</Label>
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -96,49 +97,53 @@ export function ExpensesPage() {
             </Select>
           </div>
           <div>
-            <Label>Ngày (demo filter)</Label>
+            <Label>Tháng</Label>
             <Input type="month" defaultValue="2026-11" />
           </div>
         </div>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{filtered.length} khoản chi</CardTitle>
-        </CardHeader>
-        <div className="space-y-3">
-          {filtered.map((expense) => (
-            <button
-              key={expense.id}
-              type="button"
-              onClick={() => setDetail(expense)}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border border-line px-3 py-3 text-left hover:bg-brand-50/40"
-            >
-              <div>
-                <p className="font-semibold">{expense.title}</p>
-                <p className="text-xs text-muted">
-                  {expense.memberName} · {formatDate(expense.occurredAt)} · {expense.category}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold">{formatVnd(expense.amount)}</p>
-                {expense.hasReceipt ? (
-                  <Badge variant="info" className="mt-1">
-                    <Paperclip className="mr-1 inline h-3 w-3" />
-                    Hóa đơn
-                  </Badge>
-                ) : null}
-              </div>
-            </button>
-          ))}
+      <Card className="!p-0 overflow-hidden">
+        <div className="border-b border-border px-4 py-2.5 text-[12px] text-fg-secondary">
+          {filtered.length} khoản chi
         </div>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Tiêu đề</TH>
+              <TH>Danh mục</TH>
+              <TH>Thành viên</TH>
+              <TH>Ngày</TH>
+              <TH className="text-right">Số tiền</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {filtered.map((expense) => (
+              <TR key={expense.id} className="cursor-pointer" onClick={() => setDetail(expense)}>
+                <TD className="!tabular-nums-none">
+                  <span className="font-medium">{expense.title}</span>
+                  {expense.hasReceipt ? (
+                    <Badge variant="muted" className="ml-2">
+                      <Paperclip className="mr-0.5 inline h-3 w-3" strokeWidth={1.75} />
+                      Hóa đơn
+                    </Badge>
+                  ) : null}
+                </TD>
+                <TD className="text-fg-secondary">{expense.category}</TD>
+                <TD className="text-fg-secondary">{expense.memberName}</TD>
+                <TD className="text-fg-secondary">{formatDate(expense.occurredAt)}</TD>
+                <TD className="text-right font-medium">{formatVnd(expense.amount)}</TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
       </Card>
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} title="Thêm chi tiêu">
         <form
           className="space-y-3"
           onSubmit={form.handleSubmit((values) => {
-            setMsg(`Đã tạo chi tiêu mock "${values.title}" — ${formatVnd(values.amount)}.`)
+            setMsg(`Đã tạo mock "${values.title}" — ${formatVnd(values.amount)}.`)
             form.reset()
           })}
         >
@@ -177,9 +182,9 @@ export function ExpensesPage() {
           <div>
             <Label>Đính kèm hóa đơn (UI)</Label>
             <Input type="file" accept="image/*,.pdf" />
-            <p className="mt-1 text-xs text-muted">Chưa upload lên storage — chỉ giao diện.</p>
+            <p className="mt-1 text-[11px] text-fg-muted">Chưa upload storage.</p>
           </div>
-          {msg ? <p className="text-sm text-brand-700">{msg}</p> : null}
+          {msg ? <p className="text-[13px] text-fg">{msg}</p> : null}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>
               Đóng
@@ -191,30 +196,36 @@ export function ExpensesPage() {
 
       <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} title="Chi tiết chi tiêu">
         {detail ? (
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="text-muted">Mã:</span> {detail.id}
-            </p>
-            <p>
-              <span className="text-muted">Tiêu đề:</span> {detail.title}
-            </p>
-            <p>
-              <span className="text-muted">Số tiền:</span> {formatVnd(detail.amount)}
-            </p>
-            <p>
-              <span className="text-muted">Danh mục:</span> {detail.category}
-            </p>
-            <p>
-              <span className="text-muted">Người chi:</span> {detail.memberName}
-            </p>
-            <p>
-              <span className="text-muted">Ghi chú:</span> {detail.note ?? '—'}
-            </p>
-            <p>
-              <span className="text-muted">Hóa đơn:</span>{' '}
-              {detail.hasReceipt ? 'Có (mock attachment)' : 'Không'}
-            </p>
-          </div>
+          <dl className="space-y-2 text-[13px]">
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Mã</dt>
+              <dd className="font-medium">{detail.id}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Tiêu đề</dt>
+              <dd className="font-medium">{detail.title}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Số tiền</dt>
+              <dd className="font-medium tabular-nums">{formatVnd(detail.amount)}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Danh mục</dt>
+              <dd className="font-medium">{detail.category}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Người chi</dt>
+              <dd className="font-medium">{detail.memberName}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Ghi chú</dt>
+              <dd className="font-medium">{detail.note ?? '—'}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-fg-secondary">Hóa đơn</dt>
+              <dd className="font-medium">{detail.hasReceipt ? 'Có (mock)' : 'Không'}</dd>
+            </div>
+          </dl>
         ) : null}
       </Dialog>
     </div>

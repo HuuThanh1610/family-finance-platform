@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDateTime, formatVnd } from '@/lib/utils'
 import { allowanceApi } from '@/services/family-finance-api'
@@ -30,103 +31,116 @@ export function AllowancesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Tiền tiêu vặt"
-        description="Chính sách và phê duyệt yêu cầu của thành viên CHILD."
-      />
+      <PageHeader title="Tiền tiêu vặt" description="Chính sách và phê duyệt yêu cầu CHILD." />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Chính sách</CardTitle>
           </CardHeader>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {policies.data.map((p) => (
-              <div key={p.id} className="rounded-xl border border-line p-3 text-sm">
-                <p className="font-semibold">{p.childName}</p>
-                <p className="text-muted">
+              <div key={p.id} className="border border-border p-2.5 text-[13px]">
+                <p className="font-medium">{p.childName}</p>
+                <p className="text-fg-secondary">
                   {formatVnd(p.monthlyAmount)} / tháng · ngày {p.dayOfMonth}
                 </p>
                 <Badge className="mt-2" variant={p.active ? 'success' : 'muted'}>
-                  {p.active ? 'Đang áp dụng' : 'Tạm dừng'}
+                  {p.active ? 'ACTIVE' : 'PAUSED'}
                 </Badge>
               </div>
             ))}
           </div>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        <Card className="lg:col-span-2 !p-0 overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
             <CardTitle>Yêu cầu chờ duyệt</CardTitle>
-          </CardHeader>
-          <div className="space-y-3">
-            {pending.length === 0 ? (
-              <p className="text-sm text-muted">Không có yêu cầu chờ duyệt.</p>
-            ) : (
-              pending.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex flex-col gap-3 rounded-xl border border-line p-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {req.childName} · {formatVnd(req.amount)}
-                    </p>
-                    <p className="text-sm text-muted">{req.reason}</p>
-                    <p className="text-xs text-muted">{formatDateTime(req.requestedAt)}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        alert('Phê duyệt sẽ được nối với budget-service (learning task). Mock UI only.')
-                      }
-                    >
-                      Duyệt
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        alert('Từ chối sẽ được nối với budget-service (learning task). Mock UI only.')
-                      }
-                    >
-                      Từ chối
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
           </div>
+          {pending.length === 0 ? (
+            <p className="p-4 text-[13px] text-fg-secondary">Không có yêu cầu chờ duyệt.</p>
+          ) : (
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Người yêu cầu</TH>
+                  <TH>Lý do</TH>
+                  <TH className="text-right">Số tiền</TH>
+                  <TH />
+                </TR>
+              </THead>
+              <TBody>
+                {pending.map((req) => (
+                  <TR key={req.id}>
+                    <TD className="!tabular-nums-none">
+                      <p className="font-medium">{req.childName}</p>
+                      <p className="text-[12px] text-fg-muted">{formatDateTime(req.requestedAt)}</p>
+                    </TD>
+                    <TD className="!tabular-nums-none text-fg-secondary">{req.reason}</TD>
+                    <TD className="text-right font-medium">{formatVnd(req.amount)}</TD>
+                    <TD className="text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            alert('Phê duyệt nối budget-service (learning task). Mock UI only.')
+                          }
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            alert('Từ chối nối budget-service (learning task). Mock UI only.')
+                          }
+                        >
+                          Từ chối
+                        </Button>
+                      </div>
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          )}
         </Card>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
+      <Card className="mt-3 !p-0 overflow-hidden">
+        <div className="border-b border-border px-4 py-3">
           <CardTitle>Lịch sử phê duyệt</CardTitle>
-        </CardHeader>
-        <div className="space-y-3">
-          {history.map((req) => (
-            <div
-              key={req.id}
-              className="flex flex-col gap-2 rounded-xl border border-line px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-medium">
-                  {req.childName} — {req.reason}
-                </p>
-                <p className="text-xs text-muted">
-                  {req.reviewerName} · {req.reviewedAt ? formatDateTime(req.reviewedAt) : '—'}
-                  {req.reviewNote ? ` · ${req.reviewNote}` : ''}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold">{formatVnd(req.amount)}</p>
-                <Badge variant={req.status === 'APPROVED' ? 'success' : 'danger'}>{req.status}</Badge>
-              </div>
-            </div>
-          ))}
         </div>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Yêu cầu</TH>
+              <TH>Người duyệt</TH>
+              <TH>Trạng thái</TH>
+              <TH className="text-right">Số tiền</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {history.map((req) => (
+              <TR key={req.id}>
+                <TD className="!tabular-nums-none">
+                  <p className="font-medium">
+                    {req.childName} — {req.reason}
+                  </p>
+                  <p className="text-[12px] text-fg-muted">
+                    {req.reviewedAt ? formatDateTime(req.reviewedAt) : '—'}
+                    {req.reviewNote ? ` · ${req.reviewNote}` : ''}
+                  </p>
+                </TD>
+                <TD className="text-fg-secondary">{req.reviewerName ?? '—'}</TD>
+                <TD>
+                  <Badge variant={req.status === 'APPROVED' ? 'success' : 'danger'}>{req.status}</Badge>
+                </TD>
+                <TD className="text-right font-medium">{formatVnd(req.amount)}</TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
       </Card>
     </div>
   )

@@ -4,7 +4,8 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardTitle } from '@/components/ui/card'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDate } from '@/lib/utils'
 import { householdApi } from '@/services/family-finance-api'
@@ -34,78 +35,88 @@ export function HouseholdPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Gia dụng & mua sắm"
-        description="Theo dõi tồn kho và danh sách mua sắm của hộ gia đình."
-      />
+      <PageHeader title="Gia dụng" description="Tồn kho và danh sách mua sắm." />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
+      <div className="grid gap-3 xl:grid-cols-2">
+        <Card className="!p-0 overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
             <CardTitle>Tồn kho</CardTitle>
-          </CardHeader>
-          <div className="space-y-3">
-            {inventory.data.map((item) => {
-              const low = item.quantity < item.minThreshold
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-3"
-                >
-                  <div>
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-xs text-muted">
-                      {item.category} · cập nhật {formatDate(item.updatedAt)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">
-                      {item.quantity} {item.unit}
-                    </p>
-                    <Badge variant={low ? 'danger' : 'muted'}>
-                      ngưỡng {item.minThreshold} {item.unit}
-                    </Badge>
-                  </div>
-                </div>
-              )
-            })}
           </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Sản phẩm</TH>
+                <TH>Danh mục</TH>
+                <TH className="text-right">Số lượng</TH>
+                <TH>Trạng thái</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {inventory.data.map((item) => {
+                const low = item.quantity < item.minThreshold
+                return (
+                  <TR key={item.id}>
+                    <TD className="!tabular-nums-none">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-[12px] text-fg-muted">cập nhật {formatDate(item.updatedAt)}</p>
+                    </TD>
+                    <TD className="text-fg-secondary">{item.category}</TD>
+                    <TD className="text-right font-medium">
+                      {item.quantity} {item.unit}
+                    </TD>
+                    <TD>
+                      <Badge variant={low ? 'danger' : 'muted'}>
+                        ngưỡng {item.minThreshold}
+                      </Badge>
+                    </TD>
+                  </TR>
+                )
+              })}
+            </TBody>
+          </Table>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="!p-0 overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
             <CardTitle>Danh sách mua sắm</CardTitle>
-          </CardHeader>
-          <div className="space-y-3">
-            {list.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-3"
-              >
-                <div>
-                  <p className={`font-semibold ${item.purchased ? 'line-through text-muted' : ''}`}>
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {item.quantity} {item.unit}
-                    {item.assignedTo ? ` · giao ${item.assignedTo}` : ''}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant={item.purchased ? 'secondary' : 'primary'}
-                  onClick={() =>
-                    setOverrides((prev) => ({
-                      ...prev,
-                      [item.id]: !item.purchased,
-                    }))
-                  }
-                >
-                  {item.purchased ? 'Hoàn tác' : 'Đã mua'}
-                </Button>
-              </div>
-            ))}
           </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Mặt hàng</TH>
+                <TH>Giao</TH>
+                <TH className="text-right">SL</TH>
+                <TH />
+              </TR>
+            </THead>
+            <TBody>
+              {list.map((item) => (
+                <TR key={item.id}>
+                  <TD className={`!tabular-nums-none ${item.purchased ? 'text-fg-muted line-through' : ''}`}>
+                    <span className="font-medium">{item.name}</span>
+                  </TD>
+                  <TD className="text-fg-secondary">{item.assignedTo ?? '—'}</TD>
+                  <TD className="text-right">
+                    {item.quantity} {item.unit}
+                  </TD>
+                  <TD className="text-right">
+                    <Button
+                      size="sm"
+                      variant={item.purchased ? 'secondary' : 'primary'}
+                      onClick={() =>
+                        setOverrides((prev) => ({
+                          ...prev,
+                          [item.id]: !item.purchased,
+                        }))
+                      }
+                    >
+                      {item.purchased ? 'Hoàn tác' : 'Đã mua'}
+                    </Button>
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </Card>
       </div>
     </div>

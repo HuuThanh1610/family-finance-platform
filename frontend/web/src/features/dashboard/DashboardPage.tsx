@@ -16,11 +16,12 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDateTime, formatVnd } from '@/lib/utils'
 import { dashboardApi } from '@/services/family-finance-api'
 
-const PIE_COLORS = ['#21776b', '#4aaf9e', '#7ccbbb', '#c47a1a', '#5b6b78', '#1f7a4d', '#c43c3c']
+const CHART_GRAYS = ['#171717', '#525252', '#737373', '#a3a3a3', '#d4d4d4', '#e5e5e5', '#f5f5f5']
 
 export function DashboardPage() {
   const { data, loading, error, reload } = useAsync(() => dashboardApi.getSummary(), [])
@@ -31,22 +32,23 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Tổng quan gia đình"
-        description="Số dư, ngân sách và hoạt động gần đây của Gia đình Nguyễn (dữ liệu demo)."
+        title="Tổng quan"
+        description="Số dư, ngân sách và hoạt động gần đây (dữ liệu demo)."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Tổng số dư" value={formatVnd(data.totalBalance)} hint="Tất cả ví" />
-        <StatCard label="Thu nhập tháng này" value={formatVnd(data.monthlyIncome)} hint="Tháng 11/2026" />
-        <StatCard label="Chi tiêu tháng này" value={formatVnd(data.monthlyExpense)} hint="Đã ghi nhận" />
-        <StatCard
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Tổng số dư" value={formatVnd(data.totalBalance)} hint="Tất cả ví" />
+        <Metric label="Thu nhập tháng" value={formatVnd(data.monthlyIncome)} hint="Tháng 11/2026" />
+        <Metric label="Chi tiêu tháng" value={formatVnd(data.monthlyExpense)} hint="Đã ghi nhận" />
+        <Metric
           label="Ngân sách còn lại"
           value={formatVnd(data.remainingBudget)}
-          hint={data.remainingBudget < 0 ? 'Đã vượt hạn mức' : 'Trong hạn mức'}
+          hint={data.remainingBudget < 0 ? 'Vượt hạn mức' : 'Trong hạn mức'}
+          warn={data.remainingBudget < 0}
         />
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
             <div>
@@ -54,19 +56,20 @@ export function DashboardPage() {
               <CardDescription>6 tháng gần nhất</CardDescription>
             </div>
           </CardHeader>
-          <div className="h-72">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.monthlySpending}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3e9ef" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#737373', fontSize: 12 }} />
                 <YAxis
                   tickFormatter={(v) => `${Math.round(Number(v) / 1_000_000)}tr`}
                   tickLine={false}
                   axisLine={false}
-                  width={40}
+                  width={36}
+                  tick={{ fill: '#737373', fontSize: 12 }}
                 />
                 <Tooltip formatter={(value) => formatVnd(Number(value))} />
-                <Bar dataKey="amount" fill="#21776b" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="amount" fill="#171717" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -79,19 +82,21 @@ export function DashboardPage() {
               <CardDescription>Tháng hiện tại</CardDescription>
             </div>
           </CardHeader>
-          <div className="h-72">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data.spendingByCategory}
                   dataKey="amount"
                   nameKey="category"
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={2}
+                  innerRadius={48}
+                  outerRadius={78}
+                  paddingAngle={1}
+                  stroke="#fff"
+                  strokeWidth={1}
                 >
                   {data.spendingByCategory.map((entry, index) => (
-                    <Cell key={entry.category} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    <Cell key={entry.category} fill={CHART_GRAYS[index % CHART_GRAYS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => formatVnd(Number(value))} />
@@ -101,49 +106,50 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle>Giao dịch gần đây</CardTitle>
-            <Link to="/wallets" className="text-sm font-semibold text-brand-700">
+            <Link to="/wallets" className="text-[12px] font-medium text-fg-secondary hover:text-fg">
               Xem ví
             </Link>
           </CardHeader>
-          <div className="space-y-3">
-            {data.recentTransactions.map((txn) => (
-              <div
-                key={txn.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-3"
-              >
-                <div>
-                  <p className="font-medium text-ink">{txn.description}</p>
-                  <p className="text-xs text-muted">
-                    {txn.memberName} · {formatDateTime(txn.occurredAt)}
-                  </p>
-                </div>
-                <p
-                  className={
-                    txn.entryType === 'CREDIT' ? 'font-semibold text-success' : 'font-semibold text-ink'
-                  }
-                >
-                  {txn.entryType === 'CREDIT' ? '+' : '-'}
-                  {formatVnd(txn.amount)}
-                </p>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Mô tả</TH>
+                <TH>Thời gian</TH>
+                <TH className="text-right">Số tiền</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {data.recentTransactions.map((txn) => (
+                <TR key={txn.id}>
+                  <TD className="!tabular-nums-none">
+                    <p className="font-medium text-fg">{txn.description}</p>
+                    <p className="text-[12px] text-fg-muted">{txn.memberName}</p>
+                  </TD>
+                  <TD className="whitespace-nowrap text-fg-secondary">{formatDateTime(txn.occurredAt)}</TD>
+                  <TD className={`text-right font-medium ${txn.entryType === 'CREDIT' ? 'text-success' : 'text-fg'}`}>
+                    {txn.entryType === 'CREDIT' ? '+' : '-'}
+                    {formatVnd(txn.amount)}
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle>Chi tiêu thành viên</CardTitle>
             </CardHeader>
-            <div className="space-y-3">
+            <div className="space-y-2 text-[13px]">
               {data.memberSpending.map((m) => (
-                <div key={m.memberName} className="flex items-center justify-between text-sm">
-                  <span className="text-muted">{m.memberName}</span>
-                  <span className="font-semibold">{formatVnd(m.amount)}</span>
+                <div key={m.memberName} className="flex items-center justify-between gap-2">
+                  <span className="text-fg-secondary">{m.memberName}</span>
+                  <span className="font-medium tabular-nums">{formatVnd(m.amount)}</span>
                 </div>
               ))}
             </div>
@@ -151,19 +157,19 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Duyệt tiền tiêu vặt</CardTitle>
-              <Link to="/allowances" className="text-sm font-semibold text-brand-700">
+              <CardTitle>Chờ duyệt</CardTitle>
+              <Link to="/allowances" className="text-[12px] font-medium text-fg-secondary hover:text-fg">
                 Xem
               </Link>
             </CardHeader>
             <div className="space-y-2">
               {data.pendingAllowances.map((req) => (
-                <div key={req.id} className="rounded-xl bg-amber-50 px-3 py-2 text-sm">
+                <div key={req.id} className="border border-border px-2.5 py-2 text-[13px]">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{req.childName}</span>
-                    <Badge variant="warning">Chờ duyệt</Badge>
+                    <Badge variant="warning">PENDING</Badge>
                   </div>
-                  <p className="mt-1 text-muted">
+                  <p className="mt-1 text-fg-secondary">
                     {formatVnd(req.amount)} — {req.reason}
                   </p>
                 </div>
@@ -173,14 +179,14 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Cảnh báo tồn kho</CardTitle>
-              <Link to="/household" className="text-sm font-semibold text-brand-700">
+              <CardTitle>Tồn kho thấp</CardTitle>
+              <Link to="/household" className="text-[12px] font-medium text-fg-secondary hover:text-fg">
                 Kho
               </Link>
             </CardHeader>
-            <div className="space-y-2">
+            <div className="space-y-2 text-[13px]">
               {data.lowStockItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
+                <div key={item.id} className="flex items-center justify-between gap-2">
                   <span>{item.name}</span>
                   <Badge variant="danger">
                     {item.quantity}/{item.minThreshold} {item.unit}
@@ -195,12 +201,24 @@ export function DashboardPage() {
   )
 }
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Metric({
+  label,
+  value,
+  hint,
+  warn,
+}: {
+  label: string
+  value: string
+  hint: string
+  warn?: boolean
+}) {
   return (
-    <Card>
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 font-display text-2xl font-extrabold text-ink">{value}</p>
-      <p className="mt-1 text-xs text-muted">{hint}</p>
+    <Card className="!p-3">
+      <p className="text-[12px] text-fg-secondary">{label}</p>
+      <p className={`mt-1 text-[18px] font-semibold tabular-nums ${warn ? 'text-danger' : 'text-fg'}`}>
+        {value}
+      </p>
+      <p className="mt-0.5 text-[11px] text-fg-muted">{hint}</p>
     </Card>
   )
 }

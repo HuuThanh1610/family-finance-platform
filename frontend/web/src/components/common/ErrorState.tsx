@@ -11,9 +11,9 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-6 text-center">
-      <AlertTriangle className="h-6 w-6 text-danger" />
-      <p className="text-sm text-danger">{message}</p>
+    <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-[2px] border border-danger/20 bg-bg p-6 text-center">
+      <AlertTriangle className="h-4 w-4 text-danger" strokeWidth={1.75} />
+      <p className="text-[13px] text-danger">{message}</p>
       {onRetry ? (
         <Button variant="secondary" size="sm" onClick={onRetry}>
           Thử lại

@@ -1,8 +1,8 @@
-export function LoadingState({ label = 'Đang tải dữ liệu...' }: { label?: string }) {
+export function LoadingState({ label = 'Đang tải...' }: { label?: string }) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-line bg-white/70 p-6">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-700" />
-      <p className="text-sm text-muted">{label}</p>
+    <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-[2px] border border-border bg-bg p-6">
+      <div className="h-4 w-4 animate-spin rounded-full border border-border border-t-fg" />
+      <p className="text-[13px] text-fg-secondary">{label}</p>
     </div>
   )
 }

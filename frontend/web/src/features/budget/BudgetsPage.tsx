@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatVnd } from '@/lib/utils'
 import { budgetApi } from '@/services/family-finance-api'
@@ -40,46 +41,58 @@ export function BudgetsPage() {
   return (
     <div>
       <PageHeader
-        title="Ngân sách tháng"
-        description={`Tháng ${data.month} — theo dõi hạn mức theo danh mục.`}
-        actions={<Button onClick={() => setOpen(true)}>Thêm / chỉnh danh mục</Button>}
+        title="Ngân sách"
+        description={`Tháng ${data.month} — hạn mức theo danh mục.`}
+        actions={<Button onClick={() => setOpen(true)}>Chỉnh danh mục</Button>}
       />
 
-      <Card className="mb-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <Card className="mb-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm text-muted">Đã chi / Tổng ngân sách</p>
-            <p className="mt-1 font-display text-2xl font-extrabold">
+            <p className="text-[12px] text-fg-secondary">Đã chi / Tổng ngân sách</p>
+            <p className="mt-1 text-[18px] font-semibold tabular-nums">
               {formatVnd(data.totalSpent)} / {formatVnd(data.totalAllocated)}
             </p>
           </div>
-          <Badge variant={overallPct > 100 ? 'danger' : overallPct > 85 ? 'warning' : 'success'}>
-            {overallPct}% đã sử dụng
+          <Badge variant={overallPct > 100 ? 'danger' : overallPct > 85 ? 'warning' : 'muted'}>
+            {overallPct}%
           </Badge>
         </div>
-        <Progress className="mt-4" value={data.totalSpent} max={data.totalAllocated} />
+        <Progress className="mt-3" value={data.totalSpent} max={data.totalAllocated} />
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {data.categories.map((cat) => {
-          const over = cat.spent > cat.allocated
-          const pct = Math.round((cat.spent / cat.allocated) * 100)
-          return (
-            <Card key={cat.id}>
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold text-ink">{cat.name}</h3>
-                  <p className="text-sm text-muted">
-                    {formatVnd(cat.spent)} / {formatVnd(cat.allocated)}
-                  </p>
-                </div>
-                {over ? <Badge variant="danger">Vượt ngân sách</Badge> : <Badge variant="muted">{pct}%</Badge>}
-              </div>
-              <Progress value={cat.spent} max={cat.allocated} />
-            </Card>
-          )
-        })}
-      </div>
+      <Card className="!p-0 overflow-hidden">
+        <Table>
+          <THead>
+            <TR>
+              <TH>Danh mục</TH>
+              <TH className="text-right">Đã chi</TH>
+              <TH className="text-right">Hạn mức</TH>
+              <TH className="w-40">Tiến độ</TH>
+              <TH>Trạng thái</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {data.categories.map((cat) => {
+              const over = cat.spent > cat.allocated
+              const pct = Math.round((cat.spent / cat.allocated) * 100)
+              return (
+                <TR key={cat.id}>
+                  <TD className="!tabular-nums-none font-medium">{cat.name}</TD>
+                  <TD className="text-right">{formatVnd(cat.spent)}</TD>
+                  <TD className="text-right text-fg-secondary">{formatVnd(cat.allocated)}</TD>
+                  <TD>
+                    <Progress value={cat.spent} max={cat.allocated} />
+                  </TD>
+                  <TD>
+                    {over ? <Badge variant="danger">Vượt</Badge> : <Badge variant="muted">{pct}%</Badge>}
+                  </TD>
+                </TR>
+              )
+            })}
+          </TBody>
+        </Table>
+      </Card>
 
       <Dialog
         open={open}
@@ -88,11 +101,9 @@ export function BudgetsPage() {
         description="Thay đổi chỉ áp dụng trên UI mock."
       >
         <form
-          className="space-y-4"
+          className="space-y-3"
           onSubmit={form.handleSubmit((values) => {
-            setLocalMsg(
-              `Đã lưu (mock) danh mục "${values.name}" với hạn mức ${formatVnd(values.allocated)}.`,
-            )
+            setLocalMsg(`Đã lưu (mock) "${values.name}" · ${formatVnd(values.allocated)}.`)
             form.reset()
           })}
         >
@@ -104,7 +115,7 @@ export function BudgetsPage() {
             <Label htmlFor="allocated">Hạn mức (VND)</Label>
             <Input id="allocated" type="number" {...form.register('allocated', { valueAsNumber: true })} />
           </div>
-          {localMsg ? <p className="text-sm text-brand-700">{localMsg}</p> : null}
+          {localMsg ? <p className="text-[13px] text-fg">{localMsg}</p> : null}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Đóng

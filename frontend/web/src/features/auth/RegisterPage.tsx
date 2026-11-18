@@ -47,43 +47,43 @@ export function RegisterPage() {
   })
 
   return (
-    <AuthLayout title="Tạo tài khoản" subtitle="Bắt đầu quản lý tài chính cho gia đình của bạn.">
+    <AuthLayout title="Tạo tài khoản" subtitle="Bắt đầu quản lý tài chính cho gia đình.">
       <Card>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-3" onSubmit={onSubmit}>
           <div>
             <Label htmlFor="fullName">Họ và tên</Label>
             <Input id="fullName" {...register('fullName')} />
             {errors.fullName ? (
-              <p className="mt-1 text-xs text-danger">{errors.fullName.message}</p>
+              <p className="mt-1 text-[12px] text-danger">{errors.fullName.message}</p>
             ) : null}
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register('email')} />
-            {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+            {errors.email ? <p className="mt-1 text-[12px] text-danger">{errors.email.message}</p> : null}
           </div>
           <div>
             <Label htmlFor="password">Mật khẩu</Label>
             <Input id="password" type="password" {...register('password')} />
             {errors.password ? (
-              <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+              <p className="mt-1 text-[12px] text-danger">{errors.password.message}</p>
             ) : null}
           </div>
           <div>
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
             <Input id="confirmPassword" type="password" {...register('confirmPassword')} />
             {errors.confirmPassword ? (
-              <p className="mt-1 text-xs text-danger">{errors.confirmPassword.message}</p>
+              <p className="mt-1 text-[12px] text-danger">{errors.confirmPassword.message}</p>
             ) : null}
           </div>
-          {errors.root ? <p className="text-sm text-danger">{errors.root.message}</p> : null}
+          {errors.root ? <p className="text-[13px] text-danger">{errors.root.message}</p> : null}
           <Button className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Đang tạo...' : 'Đăng ký'}
           </Button>
         </form>
-        <p className="mt-4 text-sm text-muted">
+        <p className="mt-4 text-[13px] text-fg-secondary">
           Đã có tài khoản?{' '}
-          <Link className="font-semibold text-brand-700" to="/login">
+          <Link className="font-medium text-fg underline-offset-2 hover:underline" to="/login">
             Đăng nhập
           </Link>
         </p>
