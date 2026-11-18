@@ -1,37 +1,42 @@
 # Implementation Progress
 
-**Updated:** 2026-11-18 (completion hardening)  
-**Remote:** `origin/main` (local HEAD ahead until push)  
-**HEAD:** `05a5318`
+**Updated:** 2026-11-18 (runtime integration verification)  
+**Remote:** `origin/main`  
+**HEAD:** see `git log -1 --oneline` after push
 
 ## Completed & verified this session
 
 | Area | Evidence |
 |------|----------|
-| JWT Resource Server on all Spring services | `0890e16` — `SecurityConfig`, issuer/audience YAML, role mapping |
-| Cross-family / role authz unit tests | family-service 17 tests PASS |
-| Fail-closed family auth client (wallet) | `FamilyAuthorizationClientTest` PASS |
-| Wallet concurrent + ledger IT (PostgreSQL) | `WALLET_IT=true` + `WALLET_IT_JDBC_URL` → **9/9 PASS** (`9bc2569`) |
-| Payment recovery / IPN / outbox idempotency | payment **22/22 PASS** (`b23ec92`) |
-| Frontend Keycloak OIDC PKCE + real APIs | `npm run build` PASS; mock only if `VITE_USE_MOCK=true` (`b1c44f8`) |
-| Dockerfiles + Compose full profile | `docker compose config -q` PASS (`05a5318`) |
-| Grafana/Prometheus/OTel | real Spring metric names; collector health checked |
+| Full compose stack healthy | All `ff-*` app containers healthy (gateway, frontend, 9 services, kafka, keycloak, tempo, prometheus, grafana) |
+| JWT Resource Server (integrated) | Anon `/api/families` → **401**; invalid JWT → **401**; issuer `http://localhost:8180/realms/family-finance` |
+| Cross-family / role authz (runtime) | `scripts/runtime-security-verify.sh` — non-member/cross-family/CHILD approve/VIEWER transfer → **403** |
+| FakePayment → Kafka → wallet credit | `SECURITY_ENABLED=true KAFKA_ENABLED=true ./scripts/runtime-e2e-smoke.sh` — credit **50000 once** after double IPN |
+| Kafka broker | Topics + groups `wallet-service`/`payment-service`; outbox `PUBLISHED=1`; inbox `PROCESSED=1`; ledger DEBIT=CREDIT |
+| OTLP → Tempo | Collector receives spans; Tempo search populated; forced W3C `traceparent` shows **api-gateway + family-service** |
+| Wallet IT | **9/9 PASS** on compose `wallet_db` (`WALLET_IT=true` + JDBC) |
+| payment / budget / profile / family unit | payment **24**; budget **7**; profile **5**; family **17** PASS |
+| Frontend | `npm run build` PASS (lint warnings only) |
+| Compose config | `docker compose --profile full --profile observability config -q` PASS |
 
 ## Remaining / blocked
 
 1. **Live MoMo sandbox E2E** — BLOCKED (owner credentials + public HTTPS IPN)
-2. **Testcontainers auto-start** — BLOCKED on this machine: Docker Desktop 29 returns HTTP 400 to docker-java; IT verified via compose Postgres (`wallet_it_db`)
-3. **Kafka broker E2E IT** — code present; full broker suite not recorded as PASS this session
-4. **`docker compose --profile full up --build`** — config validated; full image build/start not timed as PASS
-5. **K8s live deploy** — manifests improved; no kind deploy PASS claimed
+2. **Testcontainers auto-start** — BLOCKED on Docker Desktop 29 (HTTP 400 to docker-java); use `WALLET_IT_JDBC_URL`
+3. **Full allowance/expense/inventory Kafka saga demos** — payment→wallet credit proven; other sagas code-present, not all scripted in this runtime pass
+4. **K8s live deploy** — manifests only
 
-## Quality gate snapshot (2026-11-18)
+## Quality gate snapshot (2026-11-18 runtime)
 
 | Suite | Result |
 |-------|--------|
-| profile / family / budget / expense / household / notification / analytics | unit PASS |
-| payment-service | 22 run / 0 fail |
-| wallet unit (`!*IT`) | PASS |
-| wallet IT (`WALLET_IT=true` + external JDBC) | 9 run / 0 fail / 0 skip |
+| family-service | 17 run / 0 fail |
+| payment-service | 24 run / 0 fail |
+| budget-service | 7 run / 0 fail |
+| profile-service | 5 run / 0 fail |
+| wallet unit (`!*IT`) | 7 run / 0 fail |
+| wallet IT | 9 run / 0 fail / 0 skip |
 | frontend `npm run build` | PASS |
 | `docker compose config -q` | PASS |
+| runtime smoke (FakePayment+Kafka) | PASS |
+| runtime security verify | PASS |

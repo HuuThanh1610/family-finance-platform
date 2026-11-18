@@ -2,61 +2,40 @@
 
 **Date:** 2026-11-18  
 **Repo:** https://github.com/HuuThanh1610/family-finance-platform  
-**Branch:** `main`  
-**Session commits:** `0890e16` → `05a5318` (on top of prior `9300e4f`)
+**Branch:** `main`
 
-## 1. Implemented and verified
+## 1. Implemented and verified (runtime)
 
-- Independent OAuth2 Resource Server JWT enforcement on every Spring service (gateway is not the only layer).
-- Family membership / role / permission checks with cross-family denial unit tests.
-- Wallet double-entry ledger with concurrent transfer IT against PostgreSQL (**9/9 PASS** via `WALLET_IT=true` + `WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_it_db`).
-- Payment MoMo HMAC/IPN/Fake adapter + recovery (duplicate IPN, outbox retry, reconcile APIs) — **22/22 PASS**.
-- Frontend Keycloak Authorization Code + PKCE; mock only when `VITE_USE_MOCK=true`; production build OK.
-- Compose config valid; Dockerfiles for all apps; Prometheus/Grafana dashboards using real Micrometer names; OTel collector present.
+- Full Docker Compose stack (`full` + `observability`) starts healthy: apps, Postgres, Kafka (`apache/kafka:3.7.2`), Keycloak, Prometheus, Grafana, OTel Collector, Tempo.
+- Independent OAuth2 Resource Server JWT on gateway and services (`SECURITY_ENABLED=true` in compose apps profile). Local-dev can still set `SECURITY_ENABLED=false`.
+- Family authorization: membership + permission keys (`wallet.transfer`, `budget.approve`). Runtime script proves anon/invalid JWT 401 and CHILD/VIEWER/cross-family 403.
+- FakePaymentAdapter create → fake IPN (×2) → Kafka `PaymentProviderPaid` → exactly one wallet credit; ledger DEBIT sum = CREDIT sum.
+- Micrometer OTLP traces export to collector → Tempo; demonstrated shared W3C trace across **api-gateway** and **family-service**. Prometheus metrics remain a separate scrape pipeline.
+- Frontend Keycloak PKCE + real APIs; production build OK.
+- Quality gates: family 17, payment 24, budget 7, profile 5, wallet unit 7, wallet IT 9 — all PASS.
 
-## 2. Implemented but not externally verified
+## 2. Key runtime fixes in this verification
 
-- Live MoMo sandbox checkout / IPN over public HTTPS.
-- Full Kafka broker E2E (PaymentProviderPaid → WalletCreditPosted, allowance/expense/inventory sagas) with real broker assertions.
-- Full `docker compose --profile full up --build` health of every app container.
-- Kind/Kubernetes live deployment.
-- Automatic Testcontainers container lifecycle on this Docker Desktop 29 host (API 400 from docker-java).
+- `@Qualifier("paymentProviders")` so provider map keys are `FAKE_PAYMENT` / `MOMO_SANDBOX` (not bean names).
+- Profile id aligned to Keycloak UUID `sub` when provisioned.
+- Wallet/budget permission enforcement via Family Service internal authorization API.
+- Tempo datasource provisioning; recreate OTel collector after Tempo for export path.
+- Wallet IT excludes OAuth2 RS autoconfig when `jwk-set-uri` would be empty.
 
-## 3. Not implemented / incomplete
+## 3. Blocked / incomplete external items
 
-- Spring apps exporting OTLP traces to the collector by default (collector ready; exporter wiring partial).
-- Exhaustive Grafana panels for Kafka lag / Hikari pools beyond Spring HTTP/JVM basics.
+- Live MoMo sandbox checkout / public HTTPS IPN (owner credentials).
+- Testcontainers auto-start on Docker Desktop 29 (use `WALLET_IT_JDBC_URL`).
+- Kind/Kubernetes live deploy.
+- Exhaustive scripted E2E for every Kafka saga (allowance/expense/inventory) beyond payment→wallet.
 
-## 4. Blocked by owner credentials
-
-- MoMo partner/access/secret keys and reachable `MOMO_IPN_URL`.
-
-## 5. Known technical limitations
-
-- Docker Desktop 29 + Testcontainers/docker-java: use external JDBC fallback documented in wallet IT base class.
-- Existing `wallet_db` may lack `flyway_schema_history` if previously created without Flyway; prefer clean DB or baseline carefully.
-- Repo is PUBLIC — keep only placeholder secrets; Keycloak realm demo passwords are local-dev only.
-
-## Evidence commands
+## 4. Evidence commands
 
 ```bash
-# Security / unit
-mvn -f services/family-service/pom.xml test
-mvn -f services/payment-service/pom.xml test
-
-# Wallet IT (compose Postgres)
-docker exec ff-postgres psql -U postgres -c "CREATE DATABASE wallet_it_db OWNER wallet_user;"
-WALLET_IT=true \
-WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_it_db \
-WALLET_IT_DB_USER=wallet_user \
-WALLET_IT_DB_PASSWORD=changeme_wallet \
-  mvn -f services/wallet-service/pom.xml test -Dtest=WalletConcurrentTransferIT,WalletLedgerIntegrityIT
-
-# Frontend
-cd frontend/web && npm run build
-
-# Compose
-docker compose config -q
+SECURITY_ENABLED=true KAFKA_ENABLED=true ./scripts/runtime-e2e-smoke.sh
+./scripts/runtime-security-verify.sh
+curl -s "http://localhost:3200/api/traces/<traceId>"   # expect api-gateway + family-service
+docker compose --profile full --profile observability config -q
 ```
 
-**Definition of Done:** critical local verification for JWT, wallet concurrency (external PG), payment IPN tests, frontend OIDC wiring, and compose config are met. Live MoMo + full Kafka broker + full compose image bring-up remain explicitly unverified/blocked — project is **not** claimed fully complete for those external items.
+**Definition of Done (local integrated platform):** met for stack health, Keycloak JWT, cross-family denial, FakePayment+Kafka wallet credit without duplicates, metrics + real Tempo traces. Live MoMo and K8s remain explicitly blocked/unverified.
