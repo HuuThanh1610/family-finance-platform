@@ -1,0 +1,109 @@
+{
+  "realm": "family-finance",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["vi", "en"],
+  "defaultLocale": "vi",
+  "roles": {
+    "realm": [
+      { "name": "OWNER", "description": "Family owner" },
+      { "name": "PARENT", "description": "Parent" },
+      { "name": "ADULT_MEMBER", "description": "Adult member" },
+      { "name": "CHILD", "description": "Child member" },
+      { "name": "VIEWER", "description": "Read-only member" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "family-finance-web",
+      "name": "Family Finance Web",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "http://localhost:5173",
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "family-finance-gateway",
+      "name": "API Gateway resource server",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me-gateway-client-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "bearerOnly": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "family-finance-services",
+      "name": "Internal service-to-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me-services-client-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "owner.demo",
+      "enabled": true,
+      "email": "owner.demo@example.local",
+      "emailVerified": true,
+      "firstName": "Chủ",
+      "lastName": "Demo",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMeOwner1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["OWNER"]
+    },
+    {
+      "username": "parent.demo",
+      "enabled": true,
+      "email": "parent.demo@example.local",
+      "emailVerified": true,
+      "firstName": "Phụ",
+      "lastName": "Huynh",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMeParent1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["PARENT"]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/family-finance}
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - ${WEB_ORIGIN:http://localhost:5173}
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        - id: profile
+          uri: ${PROFILE_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/profiles/**,/api/profiles/**
+        - id: family
+          uri: ${FAMILY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/families/**,/api/families/**,/internal/families/**
+        - id: wallet
+          uri: ${WALLET_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/wallets/**,/api/v1/wallet-transfers/**,/api/v1/ledger/**,/api/v1/internal/wallet-credits/**
+        - id: payment
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/payments/**,/api/payments/**
+        - id: budget
+          uri: ${BUDGET_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/budgets/**,/api/budgets/**,/api/v1/allowances/**
+        - id: expense
+          uri: ${EXPENSE_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/expenses/**,/api/expenses/**
+        - id: household
+          uri: ${HOUSEHOLD_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=/api/v1/household/**,/api/household/**,/api/shopping-lists/**
+        - id: notification
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=/api/v1/notifications/**,/api/notifications/**
+        - id: analytics
+          uri: ${ANALYTICS_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/v1/analytics/**,/api/analytics/**,/api/family-monthly-summaries/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+# Dev note: set SECURITY_ENABLED=false to bypass JWT while Keycloak realm is being imported.
+familyfinance:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
