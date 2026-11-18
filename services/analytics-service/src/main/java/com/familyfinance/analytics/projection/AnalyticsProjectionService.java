@@ -101,7 +101,7 @@ public class AnalyticsProjectionService {
         if (memberId != null) {
             MemberSpendingSummary member = memberSpendingSummaryRepository
                     .findByFamilyIdAndMemberIdAndSummaryMonth(familyId, memberId, month)
-                    .orElseGet(() -> newMember(familyId, memberKey, month, now));
+                    .orElseGet(() -> newMember(familyId, memberId, month, now));
             member.setTotalSpent(member.getTotalSpent() + amount);
             member.setTransactionCount(member.getTransactionCount() + 1);
             member.setGeneratedAt(now);
