@@ -26,11 +26,14 @@ chmod +x infra/postgres/apply-migrations.sh
 # hoặc dùng vòng lặp psql như đã verify trong CI local
 ```
 
-Optional full stack:
+Optional full stack (containerized apps + gateway + frontend):
 
 ```bash
-docker compose --profile full up -d
+docker compose --profile full up -d --build
+docker compose --profile full --profile observability up -d
 ```
+
+Xem [infra/README.md](../../infra/README.md).
 
 ## 2. Frontend
 

@@ -1,0 +1,367 @@
+services:
+  profile-service:
+    build:
+      context: ./services/profile-service
+    image: familyfinance/profile-service:0.0.1-SNAPSHOT
+    container_name: ff-profile-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8081"
+      DB_URL: jdbc:postgresql://postgres:5432/profile_db
+      DB_USER: ${PROFILE_DB_USER}
+      DB_PASSWORD: ${PROFILE_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  family-service:
+    build:
+      context: ./services/family-service
+    image: familyfinance/family-service:0.0.1-SNAPSHOT
+    container_name: ff-family-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8082"
+      DB_URL: jdbc:postgresql://postgres:5432/family_db
+      DB_USER: ${FAMILY_DB_USER}
+      DB_PASSWORD: ${FAMILY_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  wallet-service:
+    build:
+      context: ./services/wallet-service
+    image: familyfinance/wallet-service:0.0.1-SNAPSHOT
+    container_name: ff-wallet-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8083"
+      DB_URL: jdbc:postgresql://postgres:5432/wallet_db
+      DB_USER: ${WALLET_DB_USER}
+      DB_PASSWORD: ${WALLET_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      FAMILY_SERVICE_URL: http://family-service:8082
+      FAMILY_AUTH_ENABLED: ${FAMILY_AUTH_ENABLED:-false}
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      family-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8083/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+    image: familyfinance/payment-service:0.0.1-SNAPSHOT
+    container_name: ff-payment-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8084"
+      DB_URL: jdbc:postgresql://postgres:5432/payment_db
+      DB_USER: ${PAYMENT_DB_USER}
+      DB_PASSWORD: ${PAYMENT_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8084/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  budget-service:
+    build:
+      context: ./services/budget-service
+    image: familyfinance/budget-service:0.0.1-SNAPSHOT
+    container_name: ff-budget-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8085"
+      DB_URL: jdbc:postgresql://postgres:5432/budget_db
+      DB_USER: ${BUDGET_DB_USER}
+      DB_PASSWORD: ${BUDGET_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8085/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  expense-service:
+    build:
+      context: ./services/expense-service
+    image: familyfinance/expense-service:0.0.1-SNAPSHOT
+    container_name: ff-expense-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8086"
+      DB_URL: jdbc:postgresql://postgres:5432/expense_db
+      DB_USER: ${EXPENSE_DB_USER}
+      DB_PASSWORD: ${EXPENSE_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8086/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  household-service:
+    build:
+      context: ./services/household-service
+    image: familyfinance/household-service:0.0.1-SNAPSHOT
+    container_name: ff-household-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8087"
+      DB_URL: jdbc:postgresql://postgres:5432/household_db
+      DB_USER: ${HOUSEHOLD_DB_USER}
+      DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8087/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    image: familyfinance/notification-service:0.0.1-SNAPSHOT
+    container_name: ff-notification-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8088"
+      DB_URL: jdbc:postgresql://postgres:5432/notification_db
+      DB_USER: ${NOTIFICATION_DB_USER}
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8088/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+    image: familyfinance/analytics-service:0.0.1-SNAPSHOT
+    container_name: ff-analytics-service
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8089"
+      DB_URL: jdbc:postgresql://postgres:5432/analytics_db
+      DB_USER: ${ANALYTICS_DB_USER}
+      DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+    ports:
+      - "8089:8089"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8089/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    image: familyfinance/api-gateway:0.0.1-SNAPSHOT
+    container_name: ff-api-gateway
+    restart: unless-stopped
+    profiles: ["full"]
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: "8080"
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      WEB_ORIGIN: http://localhost:${WEB_PORT:-5173}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      PROFILE_SERVICE_URL: http://profile-service:8081
+      FAMILY_SERVICE_URL: http://family-service:8082
+      WALLET_SERVICE_URL: http://wallet-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      BUDGET_SERVICE_URL: http://budget-service:8085
+      EXPENSE_SERVICE_URL: http://expense-service:8086
+      HOUSEHOLD_SERVICE_URL: http://household-service:8087
+      NOTIFICATION_SERVICE_URL: http://notification-service:8088
+      ANALYTICS_SERVICE_URL: http://analytics-service:8089
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      profile-service:
+        condition: service_healthy
+      family-service:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      budget-service:
+        condition: service_healthy
+      expense-service:
+        condition: service_healthy
+      household-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  frontend:
+    build:
+      context: ./frontend/web
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+        VITE_USE_MOCK: ${VITE_USE_MOCK:-false}
+    image: familyfinance/frontend:0.0.1-SNAPSHOT
+    container_name: ff-frontend
+    restart: unless-stopped
+    profiles: ["full"]
+    ports:
+      - "${WEB_PORT:-5173}:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

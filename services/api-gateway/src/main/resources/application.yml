@@ -63,7 +63,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,prometheus,metrics,gateway
 
 # Dev note: set SECURITY_ENABLED=false to bypass JWT while Keycloak realm is being imported.
 familyfinance:

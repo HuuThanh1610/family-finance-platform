@@ -8,11 +8,18 @@ Nền tảng quản lý tài chính & hộ gia đình (ví nội bộ mô phỏn
 cp .env.example .env
 docker compose up -d postgres
 
-# optional: Kafka + Keycloak + Mailpit
-docker compose --profile full up -d
+# Hạ tầng + toàn bộ service + gateway + frontend (build image)
+docker compose --profile full up -d --build
 
-cd frontend/web && cp .env.example .env && npm install && npm run dev
+# Prometheus + Grafana + OTLP collector (kết hợp với --profile full để scrape)
+docker compose --profile full --profile observability up -d
+
+# Hoặc dev frontend Vite:
+docker compose --profile web up -d
+# cd frontend/web && npm install && npm run dev
 ```
+
+Chi tiết Docker: [infra/README.md](infra/README.md)
 
 - Web: http://localhost:5173 (`VITE_USE_MOCK=true` mặc định)
 - Gateway: `services/api-gateway` port 8080

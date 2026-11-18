@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: family-finance
+    orgId: 1
+    folder: Family Finance
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
