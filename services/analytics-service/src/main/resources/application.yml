@@ -15,6 +15,25 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:analytics-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      auto-startup: ${familyfinance.kafka.enabled:false}
+
+familyfinance:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    topics:
+      payment-events: payment.provider.events
+      wallet-ledger-events: wallet.ledger.events
+      budget-events: budget.domain.events
+      expense-events: expense.domain.events
+
 server:
   port: ${SERVER_PORT:8089}
 

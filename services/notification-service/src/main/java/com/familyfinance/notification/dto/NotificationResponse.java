@@ -14,6 +14,7 @@ public record NotificationResponse(
         String title,
         String body,
         String status,
+        boolean read,
         Instant createdAt,
         Instant updatedAt
 ) {
