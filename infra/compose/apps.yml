@@ -1,22 +1,24 @@
 services:
   profile-service:
     build:
-      context: ./services/profile-service
+      context: ../../services/profile-service
     image: familyfinance/profile-service:0.0.1-SNAPSHOT
     container_name: ff-profile-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8081"
       DB_URL: jdbc:postgresql://postgres:5432/profile_db
       DB_USER: ${PROFILE_DB_USER}
       DB_PASSWORD: ${PROFILE_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8081:8081"
     depends_on:
@@ -24,6 +26,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -33,22 +37,25 @@ services:
 
   family-service:
     build:
-      context: ./services/family-service
+      context: ../../services/family-service
     image: familyfinance/family-service:0.0.1-SNAPSHOT
     container_name: ff-family-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8082"
       DB_URL: jdbc:postgresql://postgres:5432/family_db
       DB_USER: ${FAMILY_DB_USER}
       DB_PASSWORD: ${FAMILY_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-change-me}
     ports:
       - "8082:8082"
     depends_on:
@@ -56,6 +63,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -65,24 +74,27 @@ services:
 
   wallet-service:
     build:
-      context: ./services/wallet-service
+      context: ../../services/wallet-service
     image: familyfinance/wallet-service:0.0.1-SNAPSHOT
     container_name: ff-wallet-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8083"
       DB_URL: jdbc:postgresql://postgres:5432/wallet_db
       DB_USER: ${WALLET_DB_USER}
       DB_PASSWORD: ${WALLET_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
       FAMILY_SERVICE_URL: http://family-service:8082
-      FAMILY_AUTH_ENABLED: ${FAMILY_AUTH_ENABLED:-false}
+      FAMILY_AUTH_ENABLED: ${FAMILY_AUTH_ENABLED:-true}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-change-me}
     ports:
       - "8083:8083"
     depends_on:
@@ -90,6 +102,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
       family-service:
         condition: service_healthy
     healthcheck:
@@ -101,22 +115,25 @@ services:
 
   payment-service:
     build:
-      context: ./services/payment-service
+      context: ../../services/payment-service
     image: familyfinance/payment-service:0.0.1-SNAPSHOT
     container_name: ff-payment-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8084"
       DB_URL: jdbc:postgresql://postgres:5432/payment_db
       DB_USER: ${PAYMENT_DB_USER}
       DB_PASSWORD: ${PAYMENT_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-fake}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8084:8084"
     depends_on:
@@ -124,6 +141,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8084/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -133,28 +152,37 @@ services:
 
   budget-service:
     build:
-      context: ./services/budget-service
+      context: ../../services/budget-service
     image: familyfinance/budget-service:0.0.1-SNAPSHOT
     container_name: ff-budget-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8085"
       DB_URL: jdbc:postgresql://postgres:5432/budget_db
       DB_USER: ${BUDGET_DB_USER}
       DB_PASSWORD: ${BUDGET_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      FAMILY_AUTH_ENABLED: ${FAMILY_AUTH_ENABLED:-true}
+      FAMILY_SERVICE_URL: http://family-service:8082
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-change-me}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8085:8085"
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      family-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8085/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
@@ -165,22 +193,24 @@ services:
 
   expense-service:
     build:
-      context: ./services/expense-service
+      context: ../../services/expense-service
     image: familyfinance/expense-service:0.0.1-SNAPSHOT
     container_name: ff-expense-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8086"
       DB_URL: jdbc:postgresql://postgres:5432/expense_db
       DB_USER: ${EXPENSE_DB_USER}
       DB_PASSWORD: ${EXPENSE_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8086:8086"
     depends_on:
@@ -188,6 +218,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8086/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -197,22 +229,24 @@ services:
 
   household-service:
     build:
-      context: ./services/household-service
+      context: ../../services/household-service
     image: familyfinance/household-service:0.0.1-SNAPSHOT
     container_name: ff-household-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8087"
       DB_URL: jdbc:postgresql://postgres:5432/household_db
       DB_USER: ${HOUSEHOLD_DB_USER}
       DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8087:8087"
     depends_on:
@@ -220,6 +254,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8087/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -229,22 +265,24 @@ services:
 
   notification-service:
     build:
-      context: ./services/notification-service
+      context: ../../services/notification-service
     image: familyfinance/notification-service:0.0.1-SNAPSHOT
     container_name: ff-notification-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8088"
       DB_URL: jdbc:postgresql://postgres:5432/notification_db
       DB_USER: ${NOTIFICATION_DB_USER}
       DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8088:8088"
     depends_on:
@@ -252,6 +290,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8088/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -261,22 +301,24 @@ services:
 
   analytics-service:
     build:
-      context: ./services/analytics-service
+      context: ../../services/analytics-service
     image: familyfinance/analytics-service:0.0.1-SNAPSHOT
     container_name: ff-analytics-service
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8089"
       DB_URL: jdbc:postgresql://postgres:5432/analytics_db
       DB_USER: ${ANALYTICS_DB_USER}
       DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8089:8089"
     depends_on:
@@ -284,6 +326,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8089/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
@@ -293,18 +337,20 @@ services:
 
   api-gateway:
     build:
-      context: ./services/api-gateway
+      context: ../../services/api-gateway
     image: familyfinance/api-gateway:0.0.1-SNAPSHOT
     container_name: ff-api-gateway
     restart: unless-stopped
     profiles: ["full"]
     env_file:
-      - .env
+      - ../../.env
     environment:
       SERVER_PORT: "8080"
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/family-finance
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/family-finance
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/family-finance/protocol/openid-connect/certs
       WEB_ORIGIN: http://localhost:${WEB_PORT:-5173}
-      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
       PROFILE_SERVICE_URL: http://profile-service:8081
       FAMILY_SERVICE_URL: http://family-service:8082
       WALLET_SERVICE_URL: http://wallet-service:8083
@@ -346,10 +392,13 @@ services:
 
   frontend:
     build:
-      context: ./frontend/web
+      context: ../../frontend/web
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
         VITE_USE_MOCK: ${VITE_USE_MOCK:-false}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-http://localhost:8180}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-family-finance}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-family-finance-web}
     image: familyfinance/frontend:0.0.1-SNAPSHOT
     container_name: ff-frontend
     restart: unless-stopped
