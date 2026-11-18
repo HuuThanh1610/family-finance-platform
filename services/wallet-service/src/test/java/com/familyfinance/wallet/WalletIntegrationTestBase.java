@@ -79,6 +79,9 @@ abstract class WalletIntegrationTestBase {
         registry.add("familyfinance.kafka.enabled", () -> "false");
         registry.add("familyfinance.family-auth.enabled", () -> "false");
         registry.add("familyfinance.security.enabled", () -> "false");
+        // Empty KEYCLOAK_JWK_SET_URI in main YAML would activate Boot's jwk decoder bean and fail.
+        registry.add("spring.autoconfigure.exclude", () ->
+                "org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration");
     }
 
     private static String envOr(String key, String fallback) {

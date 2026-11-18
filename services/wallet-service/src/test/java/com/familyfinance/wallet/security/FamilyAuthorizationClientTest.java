@@ -37,5 +37,14 @@ class FamilyAuthorizationClientTest {
         FamilyAuthorizationClient client = new FamilyAuthorizationClient(
                 RestClient.builder(), "http://127.0.0.1:1", false, "");
         client.requireMember(familyId, userId);
+        client.requirePermission(familyId, userId, "wallet.transfer");
+    }
+
+    @Test
+    void denyWhenPermissionMissing() {
+        boolean allowed = FamilyAuthorizationClient.hasPermission(
+                Map.of("member", true, "active", true, "permissions", java.util.List.of("family.read")),
+                "wallet.transfer");
+        assertEquals(false, allowed);
     }
 }

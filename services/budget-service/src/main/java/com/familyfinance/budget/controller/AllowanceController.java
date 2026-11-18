@@ -3,6 +3,8 @@ package com.familyfinance.budget.controller;
 import com.familyfinance.budget.dto.*;
 import com.familyfinance.budget.service.AllowancePolicyService;
 import com.familyfinance.budget.service.AllowanceRequestService;
+import com.familyfinance.budget.support.CurrentUserResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +18,15 @@ public class AllowanceController {
 
     private final AllowancePolicyService policyService;
     private final AllowanceRequestService requestService;
+    private final CurrentUserResolver currentUserResolver;
 
-    public AllowanceController(AllowancePolicyService policyService, AllowanceRequestService requestService) {
+    public AllowanceController(
+            AllowancePolicyService policyService,
+            AllowanceRequestService requestService,
+            CurrentUserResolver currentUserResolver) {
         this.policyService = policyService;
         this.requestService = requestService;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @GetMapping("/policies")
@@ -57,8 +64,10 @@ public class AllowanceController {
     @PostMapping("/requests/{id}/approve")
     public AllowanceRequestResponse approve(
             @PathVariable UUID id,
-            @Valid @RequestBody ApproveAllowanceRequest body) {
-        return requestService.approve(id, body);
+            @Valid @RequestBody ApproveAllowanceRequest body,
+            HttpServletRequest httpRequest) {
+        UUID actor = currentUserResolver.requireUserProfileId(httpRequest);
+        return requestService.approve(id, body, actor);
     }
 
     @PostMapping("/requests/{id}/reject")

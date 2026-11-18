@@ -10,6 +10,7 @@ import com.familyfinance.budget.exception.ResourceNotFoundException;
 import com.familyfinance.budget.repository.AllowanceRequestRepository;
 import com.familyfinance.budget.repository.ApprovalHistoryRepository;
 import com.familyfinance.budget.repository.OutboxEventRepository;
+import com.familyfinance.budget.security.FamilyAuthorizationClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +28,17 @@ public class AllowanceRequestService {
     private final AllowanceRequestRepository requestRepository;
     private final ApprovalHistoryRepository approvalHistoryRepository;
     private final OutboxEventRepository outboxEventRepository;
+    private final FamilyAuthorizationClient familyAuthorizationClient;
 
     public AllowanceRequestService(
             AllowanceRequestRepository requestRepository,
             ApprovalHistoryRepository approvalHistoryRepository,
-            OutboxEventRepository outboxEventRepository) {
+            OutboxEventRepository outboxEventRepository,
+            FamilyAuthorizationClient familyAuthorizationClient) {
         this.requestRepository = requestRepository;
         this.approvalHistoryRepository = approvalHistoryRepository;
         this.outboxEventRepository = outboxEventRepository;
+        this.familyAuthorizationClient = familyAuthorizationClient;
     }
 
     @Transactional(readOnly = true)
@@ -67,9 +71,10 @@ public class AllowanceRequestService {
     }
 
     @Transactional
-    public AllowanceRequestResponse approve(UUID requestId, ApproveAllowanceRequest body) {
+    public AllowanceRequestResponse approve(UUID requestId, ApproveAllowanceRequest body, UUID actorUserProfileId) {
         AllowanceRequest request = requestRepository.findByIdForUpdate(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("AllowanceRequest", requestId));
+        familyAuthorizationClient.requirePermission(request.getFamilyId(), actorUserProfileId, "budget.approve");
 
         AllowanceRequestStateMachine.transition(request, AllowanceRequestStatus.APPROVED_PENDING_DISBURSEMENT);
         requestRepository.save(request);

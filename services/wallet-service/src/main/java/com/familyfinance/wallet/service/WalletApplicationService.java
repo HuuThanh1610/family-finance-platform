@@ -65,7 +65,7 @@ public class WalletApplicationService {
 
     @Transactional
     public WalletResponse createWallet(CreateWalletRequest request, UUID userProfileId) {
-        familyAuthorizationClient.requireMember(request.familyId(), userProfileId);
+        familyAuthorizationClient.requirePermission(request.familyId(), userProfileId, "wallet.transfer");
         if (request.walletType() == WalletType.MEMBER_WALLET && request.ownerMemberId() == null) {
             throw new BusinessException("ownerMemberId required for MEMBER_WALLET", HttpStatus.BAD_REQUEST);
         }
@@ -160,7 +160,7 @@ public class WalletApplicationService {
 
         WalletAccount source = requireWallet(request.sourceWalletId());
         WalletAccount dest = requireWallet(request.destinationWalletId());
-        familyAuthorizationClient.requireMember(source.getFamilyId(), userProfileId);
+        familyAuthorizationClient.requirePermission(source.getFamilyId(), userProfileId, "wallet.transfer");
         if (!source.getFamilyId().equals(dest.getFamilyId())) {
             throw new BusinessException("Cross-family transfer forbidden", HttpStatus.FORBIDDEN);
         }

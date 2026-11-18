@@ -9,6 +9,7 @@ import com.familyfinance.budget.exception.InvalidAllowanceStateException;
 import com.familyfinance.budget.repository.AllowanceRequestRepository;
 import com.familyfinance.budget.repository.ApprovalHistoryRepository;
 import com.familyfinance.budget.repository.OutboxEventRepository;
+import com.familyfinance.budget.security.FamilyAuthorizationClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,15 +33,18 @@ class AllowanceRequestServiceTest {
     @Mock AllowanceRequestRepository requestRepository;
     @Mock ApprovalHistoryRepository approvalHistoryRepository;
     @Mock OutboxEventRepository outboxEventRepository;
+    @Mock FamilyAuthorizationClient familyAuthorizationClient;
 
     AllowanceRequestService service;
 
   UUID requestId = UUID.fromString("12000000-0000-4000-8000-000000000002");
     UUID approverId = UUID.fromString("c1000000-0000-4000-8000-000000000002");
+    UUID actorProfileId = UUID.fromString("b1000000-0000-4000-8000-000000000002");
 
     @BeforeEach
     void setUp() {
-        service = new AllowanceRequestService(requestRepository, approvalHistoryRepository, outboxEventRepository);
+        service = new AllowanceRequestService(
+                requestRepository, approvalHistoryRepository, outboxEventRepository, familyAuthorizationClient);
     }
 
     @Test
@@ -49,7 +53,7 @@ class AllowanceRequestServiceTest {
         when(requestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(pending));
         when(requestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        var response = service.approve(requestId, new ApproveAllowanceRequest(approverId, "OK"));
+        var response = service.approve(requestId, new ApproveAllowanceRequest(approverId, "OK"), actorProfileId);
 
         assertThat(response.status()).isEqualTo(AllowanceRequestStatus.APPROVED_PENDING_DISBURSEMENT.name());
         assertThat(pending.getDecidedAt()).isNotNull();

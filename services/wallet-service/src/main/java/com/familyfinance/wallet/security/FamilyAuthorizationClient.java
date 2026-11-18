@@ -36,12 +36,24 @@ public class FamilyAuthorizationClient {
     }
 
     public void requireMember(UUID familyId, UUID userProfileId) {
+        assertActiveMember(fetchAuthorization(familyId, userProfileId));
+    }
+
+    public void requirePermission(UUID familyId, UUID userProfileId, String permissionKey) {
+        Map<String, Object> body = fetchAuthorization(familyId, userProfileId);
+        assertActiveMember(body);
+        if (!hasPermission(body, permissionKey)) {
+            throw new BusinessException("Missing permission: " + permissionKey, HttpStatus.FORBIDDEN);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> fetchAuthorization(UUID familyId, UUID userProfileId) {
         if (!enabled) {
-            return;
+            return Map.of("member", true, "active", true, "permissions", java.util.List.of("*"));
         }
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> body = restClient.get()
+            return restClient.get()
                     .uri("/internal/families/{familyId}/members/{userProfileId}/authorization",
                             familyId, userProfileId)
                     .headers(headers -> {
@@ -51,9 +63,6 @@ public class FamilyAuthorizationClient {
                     })
                     .retrieve()
                     .body(Map.class);
-            assertActiveMember(body);
-        } catch (BusinessException ex) {
-            throw ex;
         } catch (RestClientException ex) {
             log.warn("Family authorization unavailable familyId={} user={}: {}", familyId, userProfileId, ex.toString());
             throw new BusinessException("Family authorization unavailable", HttpStatus.SERVICE_UNAVAILABLE);
@@ -66,5 +75,17 @@ public class FamilyAuthorizationClient {
         if (!member || !active) {
             throw new BusinessException("Not an active member of this family", HttpStatus.FORBIDDEN);
         }
+    }
+
+    static boolean hasPermission(Map<String, Object> body, String permissionKey) {
+        if (body == null || permissionKey == null || permissionKey.isBlank()) {
+            return false;
+        }
+        Object raw = body.get("permissions");
+        if (!(raw instanceof java.util.Collection<?> permissions)) {
+            return false;
+        }
+        return permissions.stream().map(String::valueOf).anyMatch(p ->
+                "*".equals(p) || permissionKey.equals(p));
     }
 }
