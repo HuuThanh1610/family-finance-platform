@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AuthLayout } from '@/features/auth/LoginPage'
 import { useAuth } from '@/features/auth/AuthContext'
+import { USE_MOCK } from '@/services/api-client'
 
 const schema = z
   .object({
@@ -34,6 +35,22 @@ export function RegisterPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
+
+  if (!USE_MOCK) {
+    return (
+      <AuthLayout
+        title="Đăng ký"
+        subtitle="Realm Keycloak tắt self-registration — dùng tài khoản do quản trị cấp."
+      >
+        <Card className="space-y-3 p-4 text-[13px] text-fg-secondary">
+          <p>Liên hệ quản trị hoặc dùng tài khoản demo trong realm import.</p>
+          <Link className="font-medium text-fg underline-offset-2 hover:underline" to="/login">
+            Quay lại đăng nhập Keycloak
+          </Link>
+        </Card>
+      </AuthLayout>
+    )
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     try {

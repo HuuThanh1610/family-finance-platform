@@ -2,6 +2,7 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { OidcCallbackPage } from '@/features/auth/OidcCallbackPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AllowancesPage } from '@/features/allowance/AllowancesPage'
@@ -26,6 +27,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<OidcCallbackPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 

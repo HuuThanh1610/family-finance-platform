@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/AuthContext'
+import { USE_MOCK } from '@/services/api-client'
 
 const schema = z.object({
   email: z.email('Email không hợp lệ'),
@@ -17,7 +18,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function LoginPage() {
-  const { login, isAuthenticated } = useAuth()
+  const { login, beginOidcLogin, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const {
     register,
@@ -26,7 +27,9 @@ export function LoginPage() {
     setError,
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'minh.nguyen@example.com', password: 'demo123' },
+    defaultValues: USE_MOCK
+      ? { email: 'minh.nguyen@example.com', password: 'demo123' }
+      : { email: '', password: '' },
   })
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
@@ -43,26 +46,49 @@ export function LoginPage() {
   })
 
   return (
-    <AuthLayout title="Đăng nhập" subtitle="Truy cập nền tảng quản lý tài chính gia đình.">
+    <AuthLayout
+      title="Đăng nhập"
+      subtitle={
+        USE_MOCK
+          ? 'Truy cập nền tảng quản lý tài chính gia đình (mock).'
+          : 'Xác thực qua Keycloak (OIDC Authorization Code + PKCE).'
+      }
+    >
       <Card>
-        <form className="space-y-3" onSubmit={onSubmit}>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" {...register('email')} />
-            {errors.email ? <p className="mt-1 text-[12px] text-danger">{errors.email.message}</p> : null}
+        {USE_MOCK ? (
+          <form className="space-y-3" onSubmit={onSubmit}>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" {...register('email')} />
+              {errors.email ? <p className="mt-1 text-[12px] text-danger">{errors.email.message}</p> : null}
+            </div>
+            <div>
+              <Label htmlFor="password">Mật khẩu</Label>
+              <Input id="password" type="password" {...register('password')} />
+              {errors.password ? (
+                <p className="mt-1 text-[12px] text-danger">{errors.password.message}</p>
+              ) : null}
+            </div>
+            {errors.root ? <p className="text-[13px] text-danger">{errors.root.message}</p> : null}
+            <Button className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </Button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[13px] text-fg-secondary">
+              Bạn sẽ được chuyển tới Keycloak để đăng nhập an toàn. Phiên có refresh token (offline_access).
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                void beginOidcLogin()
+              }}
+            >
+              Đăng nhập với Keycloak
+            </Button>
           </div>
-          <div>
-            <Label htmlFor="password">Mật khẩu</Label>
-            <Input id="password" type="password" {...register('password')} />
-            {errors.password ? (
-              <p className="mt-1 text-[12px] text-danger">{errors.password.message}</p>
-            ) : null}
-          </div>
-          {errors.root ? <p className="text-[13px] text-danger">{errors.root.message}</p> : null}
-          <Button className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </Button>
-        </form>
+        )}
         <div className="mt-4 space-y-2 text-[13px] text-fg-secondary">
           <p>
             Chưa có tài khoản?{' '}
@@ -75,9 +101,15 @@ export function LoginPage() {
               Quên mật khẩu?
             </Link>
           </p>
-          <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[12px] text-fg-secondary">
-            Xác thực mock — chưa tích hợp Keycloak/OAuth2.
-          </p>
+          {!USE_MOCK ? (
+            <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[12px] text-fg-secondary">
+              Demo: owner.demo@example.local / ChangeMeOwner1!
+            </p>
+          ) : (
+            <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[12px] text-fg-secondary">
+              VITE_USE_MOCK=true — chưa gọi API Gateway.
+            </p>
+          )}
         </div>
       </Card>
     </AuthLayout>

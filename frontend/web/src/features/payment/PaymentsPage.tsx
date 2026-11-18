@@ -14,7 +14,9 @@ import { Select } from '@/components/ui/select'
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAsync } from '@/hooks/useAsync'
 import { formatDateTime, formatVnd } from '@/lib/utils'
+import { useFamily } from '@/features/family/FamilyContext'
 import { paymentApi } from '@/services/family-finance-api'
+import { USE_MOCK } from '@/services/api-client'
 import type { PaymentProviderCode, PaymentStatus } from '@/types/domain'
 
 const amounts = [100_000, 200_000, 500_000, 1_000_000, 2_000_000]
@@ -42,6 +44,7 @@ const statusVariant: Partial<Record<PaymentStatus, 'warning' | 'success' | 'dang
 }
 
 export function PaymentsPage() {
+  const { familyId, memberId } = useFamily()
   const { data, loading, error, reload } = useAsync(() => paymentApi.listOrders(), [])
   const [preset, setPreset] = useState<number | null>(500_000)
   const [resultMsg, setResultMsg] = useState<string | null>(null)
@@ -62,12 +65,18 @@ export function PaymentsPage() {
     <div>
       <PageHeader
         title="Nạp tiền"
-        description="Top-up qua PaymentProvider abstraction. Không thực hiện thanh toán thật."
+        description={
+          USE_MOCK
+            ? 'Top-up qua PaymentProvider abstraction (mock).'
+            : 'Tạo đơn nạp qua API — trạng thái chỉ cập nhật khi backend xác nhận.'
+        }
       />
 
-      <div className="mb-3 border border-border bg-bg px-3 py-2 text-[13px] text-fg-secondary">
-        Mọi đơn trên trang này đều là mô phỏng. MoMo Sandbox chưa kết nối — không có credential.
-      </div>
+      {USE_MOCK ? (
+        <div className="mb-3 border border-border bg-bg px-3 py-2 text-[13px] text-fg-secondary">
+          Mô phỏng — không đánh dấu COMPLETED trước khi backend xác nhận.
+        </div>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-5">
         <Card className="lg:col-span-2">
@@ -81,8 +90,14 @@ export function PaymentsPage() {
                 amount: values.amount,
                 provider: values.provider as PaymentProviderCode,
                 description: values.description,
+                familyId: familyId ?? undefined,
+                payerMemberId: memberId ?? undefined,
               })
-              setResultMsg(order.note ?? `Đã tạo đơn ${order.id}`)
+              const statusNote = `${order.status}${order.note ? ` — ${order.note}` : ''}`
+              setResultMsg(`Đã tạo đơn ${order.id}. ${statusNote}`)
+              if (order.payUrl) {
+                window.open(order.payUrl, '_blank', 'noopener,noreferrer')
+              }
               reload()
             })}
           >
@@ -133,8 +148,8 @@ export function PaymentsPage() {
             {resultMsg ? (
               <p className="border border-border bg-bg-secondary px-2.5 py-2 text-[13px]">{resultMsg}</p>
             ) : null}
-            <Button className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Đang tạo...' : 'Tạo đơn mô phỏng'}
+            <Button className="w-full" disabled={form.formState.isSubmitting || (!USE_MOCK && !familyId)}>
+              {form.formState.isSubmitting ? 'Đang tạo...' : USE_MOCK ? 'Tạo đơn mô phỏng' : 'Tạo đơn nạp'}
             </Button>
           </form>
         </Card>
