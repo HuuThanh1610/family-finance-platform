@@ -106,6 +106,15 @@ public class WalletApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public List<WalletResponse> listWallets(UUID familyId, UUID userProfileId) {
+        familyAuthorizationClient.requireMember(familyId, userProfileId);
+        return walletAccountRepository.findByFamilyId(familyId).stream()
+                .sorted(Comparator.comparing(WalletAccount::getCreatedAt))
+                .map(wallet -> toWalletResponse(wallet, availableBalance(wallet.getId())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public WalletResponse getWallet(UUID walletId, UUID userProfileId) {
         WalletAccount wallet = requireWallet(walletId);
         familyAuthorizationClient.requireMember(wallet.getFamilyId(), userProfileId);
