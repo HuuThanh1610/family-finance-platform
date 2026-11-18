@@ -68,14 +68,33 @@ class MomoIpnServiceTest {
     @Test
     void handle_duplicateIpn_isIdempotent() {
         MomoIpnRequest ipn = signedIpn();
+        WebhookInbox processed = new WebhookInbox();
+        processed.setStatus("PROCESSED");
         when(webhookInboxRepository.findByProviderCodeAndIdempotencyKey("MOMO_SANDBOX", "999888777"))
-                .thenReturn(Optional.of(new WebhookInbox()));
+                .thenReturn(Optional.of(processed));
 
         MomoIpnResponse response = momoIpnService.handle(ipn);
 
         assertEquals(0, response.resultCode());
-        verify(webhookInboxRepository, never()).save(any());
         verify(paymentOrderService, never()).applyProviderPaid(any(), any(Long.class), any(), any(), any());
+    }
+
+    @Test
+    void handle_pendingInbox_retriesApplyProviderPaid() {
+        MomoIpnRequest ipn = signedIpn();
+        WebhookInbox pending = new WebhookInbox();
+        pending.setStatus("PENDING");
+        when(webhookInboxRepository.findByProviderCodeAndIdempotencyKey("MOMO_SANDBOX", "999888777"))
+                .thenReturn(Optional.of(pending));
+        when(webhookInboxRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MomoIpnResponse response = momoIpnService.handle(ipn);
+
+        assertEquals(0, response.resultCode());
+        verify(paymentOrderService).applyProviderPaid(
+                eq(ORDER_ID), eq(150_000L), eq("MOMO_SANDBOX"), eq("999888777"), any());
+        verify(webhookInboxRepository).save(pending);
+        assertEquals("PROCESSED", pending.getStatus());
     }
 
     @Test

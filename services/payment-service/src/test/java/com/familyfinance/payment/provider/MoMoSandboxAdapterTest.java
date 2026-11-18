@@ -57,6 +57,23 @@ class MoMoSandboxAdapterTest {
     }
 
     @Test
+    void queryPaymentStatus_parsesPaidResponse() {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""
+                        {"resultCode":0,"amount":100000,"transId":"momo-paid-9","message":"Success"}
+                        """));
+
+        var result = adapter.queryPaymentStatus(
+                "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "req-query-1");
+
+        assertEquals(true, result.paid());
+        assertEquals(100_000L, result.amount());
+        assertEquals("momo-paid-9", result.providerTxnId());
+    }
+
+    @Test
     void initiate_happyPath_parsesPayUrl() {
         server.enqueue(new MockResponse()
                 .setHeader("Content-Type", "application/json")

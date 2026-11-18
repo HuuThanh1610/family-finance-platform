@@ -23,6 +23,7 @@ public class MoMoSandboxAdapter implements PaymentProvider {
     public static final String PROVIDER_CODE = "MOMO_SANDBOX";
 
     private static final String CREATE_PATH = "/v2/gateway/api/create";
+    private static final String QUERY_PATH = "/v2/gateway/api/query";
     private static final String REQUEST_TYPE = "captureWallet";
 
     private final MomoProperties properties;
@@ -114,6 +115,55 @@ public class MoMoSandboxAdapter implements PaymentProvider {
             throw e;
         } catch (Exception e) {
             throw new BusinessException("MoMo response parse failed: " + e.getMessage(),
+                    org.springframework.http.HttpStatus.BAD_GATEWAY);
+        }
+    }
+
+    public ProviderQueryResult queryPaymentStatus(String orderId, String requestId) {
+        try {
+            properties.requireConfigured();
+        } catch (PaymentConfigurationException e) {
+            throw e;
+        }
+
+        String queryRequestId = requestId != null && !requestId.isBlank()
+                ? requestId
+                : UUID.randomUUID().toString();
+        String signature = signatureService.signQuery(
+                properties.getAccessKey(),
+                orderId,
+                properties.getPartnerCode(),
+                queryRequestId
+        );
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("partnerCode", properties.getPartnerCode());
+        body.put("requestId", queryRequestId);
+        body.put("orderId", orderId);
+        body.put("lang", "vi");
+        body.put("signature", signature);
+
+        try {
+            String responseBody = restClient.post()
+                    .uri(QUERY_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode root = objectMapper.readTree(responseBody);
+            int resultCode = root.path("resultCode").asInt(-1);
+            long amount = root.path("amount").asLong(0);
+            String transId = root.path("transId").asText("");
+            boolean paid = resultCode == 0;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> raw = objectMapper.convertValue(root, Map.class);
+            return new ProviderQueryResult(paid, amount, transId, resultCode, raw);
+        } catch (RestClientException e) {
+            throw new BusinessException("MoMo query HTTP failed: " + e.getMessage(),
+                    org.springframework.http.HttpStatus.BAD_GATEWAY);
+        } catch (Exception e) {
+            throw new BusinessException("MoMo query parse failed: " + e.getMessage(),
                     org.springframework.http.HttpStatus.BAD_GATEWAY);
         }
     }

@@ -40,6 +40,14 @@ class MomoSignatureServiceTest {
     }
 
     @Test
+    void signQuery_matchesMoMoFieldOrder() {
+        MomoSignatureService service = new MomoSignatureService(SECRET);
+        String sig1 = service.signQuery("access01", "order-1", "MOMO", "req-q1");
+        String sig2 = service.signQuery("access01", "order-1", "MOMO", "req-q1");
+        assertEquals(sig1, sig2);
+    }
+
+    @Test
     void verifyIpn_acceptsValidSignature() {
         MomoSignatureService service = new MomoSignatureService(SECRET);
         MomoIpnRequest base = sampleIpn(null);

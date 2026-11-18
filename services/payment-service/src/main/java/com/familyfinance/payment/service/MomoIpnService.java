@@ -71,7 +71,11 @@ public class MomoIpnService {
         Optional<WebhookInbox> existing = webhookInboxRepository
                 .findByProviderCodeAndIdempotencyKey(MoMoSandboxAdapter.PROVIDER_CODE, idempotencyKey);
         if (existing.isPresent()) {
-            return MomoIpnResponse.success();
+            WebhookInbox prior = existing.get();
+            if ("PROCESSED".equals(prior.getStatus())) {
+                return MomoIpnResponse.success();
+            }
+            return completeInboxProcessing(prior, orderId, ipn);
         }
 
         Instant now = Instant.now();
@@ -88,8 +92,19 @@ public class MomoIpnService {
         try {
             webhookInboxRepository.save(inbox);
         } catch (DataIntegrityViolationException e) {
-            return MomoIpnResponse.success();
+            return webhookInboxRepository
+                    .findByProviderCodeAndIdempotencyKey(MoMoSandboxAdapter.PROVIDER_CODE, idempotencyKey)
+                    .map(prior -> completeInboxProcessing(prior, orderId, ipn))
+                    .orElse(MomoIpnResponse.success());
         }
+
+        return completeInboxProcessing(inbox, orderId, ipn);
+    }
+
+    private MomoIpnResponse completeInboxProcessing(WebhookInbox inbox, UUID orderId, MomoIpnRequest ipn) {
+        String idempotencyKey = ipn.transId() != null ? ipn.transId() : ipn.requestId();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> payload = objectMapper.convertValue(ipn, Map.class);
 
         paymentOrderService.applyProviderPaid(
                 orderId,
@@ -102,7 +117,6 @@ public class MomoIpnService {
         inbox.setStatus("PROCESSED");
         inbox.setProcessedAt(Instant.now());
         webhookInboxRepository.save(inbox);
-
         return MomoIpnResponse.success();
     }
 }

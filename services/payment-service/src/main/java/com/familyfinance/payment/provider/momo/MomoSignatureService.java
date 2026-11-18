@@ -32,6 +32,15 @@ public class MomoSignatureService {
         return hmacSha256Hex(raw);
     }
 
+    /** Signature for POST /v2/gateway/api/query */
+    public String signQuery(String accessKey, String orderId, String partnerCode, String requestId) {
+        String raw = "accessKey=" + accessKey
+                + "&orderId=" + orderId
+                + "&partnerCode=" + partnerCode
+                + "&requestId=" + requestId;
+        return hmacSha256Hex(raw);
+    }
+
     /** AIOv2 IPN verify signature payload */
     public String signIpn(MomoIpnRequest ipn) {
         String raw = "accessKey=" + ipn.accessKey()

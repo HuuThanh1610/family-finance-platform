@@ -160,6 +160,9 @@ public class PaymentOrderService {
         if (!Long.valueOf(amount).equals(order.getAmount())) {
             throw new BusinessException("IPN amount mismatch for order " + orderId, HttpStatus.BAD_REQUEST);
         }
+        if (order.getWalletId() == null) {
+            throw new BusinessException("Payment order missing walletId for credit", HttpStatus.CONFLICT);
+        }
 
         Instant now = Instant.now();
         if (current == PaymentStatus.PENDING_PROVIDER) {
@@ -190,10 +193,37 @@ public class PaymentOrderService {
             // duplicate provider txn id — idempotent
         }
 
-        if (order.getWalletId() == null) {
-            throw new BusinessException("Payment order missing walletId for credit", HttpStatus.CONFLICT);
-        }
+        enqueuePaymentProviderPaidIfAbsent(order, amount, providerCode, providerTxnId, now);
+    }
 
+    @Transactional
+    public void ensurePaymentProviderPaidOutbox(UUID orderId) {
+        PaymentOrder order = repository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("PaymentOrder", orderId));
+        PaymentStatus current = PaymentStatus.fromDbValue(order.getStatus());
+        if (current != PaymentStatus.CREDIT_PENDING && current != PaymentStatus.COMPLETED) {
+            throw new BusinessException(
+                    "Outbox replay only allowed for CREDIT_PENDING/COMPLETED, was " + current,
+                    HttpStatus.CONFLICT);
+        }
+        ProviderTransaction paidTxn = providerTransactionRepository
+                .findTopByPaymentAttempt_PaymentOrder_IdAndStatusOrderByRecordedAtDesc(orderId, "PAID")
+                .orElseThrow(() -> new BusinessException(
+                        "No PAID provider transaction for order " + orderId, HttpStatus.CONFLICT));
+        enqueuePaymentProviderPaidIfAbsent(
+                order,
+                paidTxn.getAmount(),
+                paidTxn.getProviderCode(),
+                paidTxn.getProviderTxnId(),
+                Instant.now());
+    }
+
+    private void enqueuePaymentProviderPaidIfAbsent(PaymentOrder order, long amount, String providerCode,
+                                                    String providerTxnId, Instant now) {
+        UUID orderId = order.getId();
+        if (outboxEventRepository.existsByAggregateIdAndEventType(orderId, EVENT_PAYMENT_PROVIDER_PAID)) {
+            return;
+        }
         OutboxEvent outbox = new OutboxEvent();
         outbox.setEventType(EVENT_PAYMENT_PROVIDER_PAID);
         outbox.setAggregateType(AGGREGATE_TYPE);
@@ -209,7 +239,11 @@ public class PaymentOrderService {
         ));
         outbox.setCreatedAt(now);
         outbox.setStatus("PENDING");
-        outboxEventRepository.save(outbox);
+        try {
+            outboxEventRepository.save(outbox);
+        } catch (DataIntegrityViolationException ignored) {
+            // concurrent duplicate PaymentProviderPaid — idempotent
+        }
     }
 
     PaymentOrderResponse toResponse(PaymentOrder entity) {

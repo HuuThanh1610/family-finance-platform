@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @ConditionalOnProperty(name = "familyfinance.kafka.enabled", havingValue = "true")
@@ -37,7 +38,8 @@ public class OutboxPublisher {
     @Scheduled(fixedDelayString = "${familyfinance.outbox.poll-interval-ms:2000}")
     @Transactional
     public void publishPending() {
-        List<OutboxEvent> batch = outboxEventRepository.findTop50ByStatusOrderByCreatedAtAsc("PENDING");
+        List<OutboxEvent> batch = outboxEventRepository.findTop50ByStatusInOrderByCreatedAtAsc(
+                Set.of("PENDING", "FAILED"));
         for (OutboxEvent event : batch) {
             try {
                 DomainEventMessage message = new DomainEventMessage(

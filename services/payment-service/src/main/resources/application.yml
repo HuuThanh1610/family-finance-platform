@@ -44,6 +44,9 @@ familyfinance:
       wallet-ledger: wallet.ledger.events
   outbox:
     poll-interval-ms: 2000
+  payment:
+    recovery:
+      webhook-poll-ms: 5000
 
 server:
   port: ${SERVER_PORT:8084}
