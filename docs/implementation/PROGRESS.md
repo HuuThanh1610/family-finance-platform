@@ -1,36 +1,37 @@
 # Implementation Progress
 
-**Updated:** 2026-11-18 (checkpoint 4)  
-**Remote:** `origin/main` @ `4220c4a`
+**Updated:** 2026-11-18 (completion hardening)  
+**Remote:** `origin/main` (local HEAD ahead until push)  
+**HEAD:** `05a5318`
 
-## Completed & verified
+## Completed & verified this session
 
 | Area | Evidence |
 |------|----------|
-| Audit, wallet ledger, family authz | earlier commits + `mvn test` |
-| Payment MoMo + IPN + Fake + saga outbox | payment `mvn test` |
-| Profile provision | profile `mvn test` |
-| API Gateway, CI, Keycloak realm, Mailpit | packaged / docs |
-| Expense wallet payment workflow | expense `mvn test` |
-| Budget + allowance saga | budget `mvn test` |
-| Household inventory + InventoryLow | household `mvn test` |
-| Notification inbox + preferences | notification `mvn test` |
-| Analytics CQRS projections | analytics `mvn test` |
-| Frontend `/api/v1` client wiring | `npm run build` |
-| Observability Compose + Micrometer | prometheus profile |
-| Wallet concurrent IT (Testcontainers) | gated `WALLET_IT=true` |
+| JWT Resource Server on all Spring services | `0890e16` — `SecurityConfig`, issuer/audience YAML, role mapping |
+| Cross-family / role authz unit tests | family-service 17 tests PASS |
+| Fail-closed family auth client (wallet) | `FamilyAuthorizationClientTest` PASS |
+| Wallet concurrent + ledger IT (PostgreSQL) | `WALLET_IT=true` + `WALLET_IT_JDBC_URL` → **9/9 PASS** (`9bc2569`) |
+| Payment recovery / IPN / outbox idempotency | payment **22/22 PASS** (`b23ec92`) |
+| Frontend Keycloak OIDC PKCE + real APIs | `npm run build` PASS; mock only if `VITE_USE_MOCK=true` (`b1c44f8`) |
+| Dockerfiles + Compose full profile | `docker compose config -q` PASS (`05a5318`) |
+| Grafana/Prometheus/OTel | real Spring metric names; collector health checked |
 
-## Remaining for full Definition of Done
+## Remaining / blocked
 
-1. JWT Resource Server enforced on all services + cross-family security IT
-2. Run `WALLET_IT=true` against Docker and record pass/fail honestly
-3. Live MoMo sandbox (needs owner credentials + public IPN tunnel)
-4. Frontend Keycloak login + non-mock wallet list bootstrap
-5. Full Compose images for every Spring service
-6. Expand Grafana dashboards / OTel collectors
-7. Refresh FINAL report with exact test counts after a full matrix run
+1. **Live MoMo sandbox E2E** — BLOCKED (owner credentials + public HTTPS IPN)
+2. **Testcontainers auto-start** — BLOCKED on this machine: Docker Desktop 29 returns HTTP 400 to docker-java; IT verified via compose Postgres (`wallet_it_db`)
+3. **Kafka broker E2E IT** — code present; full broker suite not recorded as PASS this session
+4. **`docker compose --profile full up --build`** — config validated; full image build/start not timed as PASS
+5. **K8s live deploy** — manifests improved; no kind deploy PASS claimed
 
-## Blockers
+## Quality gate snapshot (2026-11-18)
 
-- MoMo sandbox credentials not provided
-- Some subagent model quotas failed mid-run; work continued locally
+| Suite | Result |
+|-------|--------|
+| profile / family / budget / expense / household / notification / analytics | unit PASS |
+| payment-service | 22 run / 0 fail |
+| wallet unit (`!*IT`) | PASS |
+| wallet IT (`WALLET_IT=true` + external JDBC) | 9 run / 0 fail / 0 skip |
+| frontend `npm run build` | PASS |
+| `docker compose config -q` | PASS |

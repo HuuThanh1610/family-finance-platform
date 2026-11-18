@@ -1,42 +1,62 @@
-# Final Implementation Report (checkpoint — not full Definition of Done)
+# Final Implementation Report
 
 **Date:** 2026-11-18  
 **Repo:** https://github.com/HuuThanh1610/family-finance-platform  
-**Branch:** `main` @ `4220c4a` (updates as work continues)
+**Branch:** `main`  
+**Session commits:** `0890e16` → `05a5318` (on top of prior `9300e4f`)
 
-## 1. Final architecture
+## 1. Implemented and verified
 
-Microservices (Spring Boot 3.3.5 / Java 21), DB-per-service, Keycloak IdP, optional Kafka outbox/inbox, React/Vite frontend, Docker Compose local, starter K8s manifests.
+- Independent OAuth2 Resource Server JWT enforcement on every Spring service (gateway is not the only layer).
+- Family membership / role / permission checks with cross-family denial unit tests.
+- Wallet double-entry ledger with concurrent transfer IT against PostgreSQL (**9/9 PASS** via `WALLET_IT=true` + `WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_it_db`).
+- Payment MoMo HMAC/IPN/Fake adapter + recovery (duplicate IPN, outbox retry, reconcile APIs) — **22/22 PASS**.
+- Frontend Keycloak Authorization Code + PKCE; mock only when `VITE_USE_MOCK=true`; production build OK.
+- Compose config valid; Dockerfiles for all apps; Prometheus/Grafana dashboards using real Micrometer names; OTel collector present.
 
-## 2. Implemented services (honest)
+## 2. Implemented but not externally verified
 
-| Service | Status |
-|---------|--------|
-| api-gateway | Implemented (routes + optional JWT) |
-| profile-service | Implemented (provision, me, prefs, consents) |
-| family-service | Implemented (membership, invitations, authz) |
-| wallet-service | Implemented (double-entry ledger, transfers, top-up credit, optional Kafka) |
-| payment-service | Implemented (MoMo sandbox adapter, IPN, Fake adapter, top-up saga) |
-| budget-service | Implemented (budgets, allowance saga states + outbox) |
-| expense-service | Implemented (create + wallet payment workflow + outbox) |
-| household-service | Implemented (inventory movements + InventoryLow outbox) |
-| notification-service | Implemented (in-app + inbox + optional Kafka) |
-| analytics-service | Implemented (CQRS projections + reports API) |
+- Live MoMo sandbox checkout / IPN over public HTTPS.
+- Full Kafka broker E2E (PaymentProviderPaid → WalletCreditPosted, allowance/expense/inventory sagas) with real broker assertions.
+- Full `docker compose --profile full up --build` health of every app container.
+- Kind/Kubernetes live deployment.
+- Automatic Testcontainers container lifecycle on this Docker Desktop 29 host (API 400 from docker-java).
 
-## 3. Payment & ledger
+## 3. Not implemented / incomplete
 
-- **Verified in automated tests:** MoMo HMAC signature, IPN dedupe paths, Fake adapter, ledger debit=credit unit tests, expense/budget/household unit tests.
-- **Not externally verified:** Live MoMo sandbox (credentials pending), Kafka end-to-end with real broker, Testcontainers concurrency.
+- Spring apps exporting OTLP traces to the collector by default (collector ready; exporter wiring partial).
+- Exhaustive Grafana panels for Kafka lag / Hikari pools beyond Spring HTTP/JVM basics.
 
-## 4. Frontend
+## 4. Blocked by owner credentials
 
-- Screens exist; API client wired to `/api/v1` when `VITE_USE_MOCK=false`.
-- Default remains mock. Keycloak login UI not fully replacing mock auth.
+- MoMo partner/access/secret keys and reachable `MOMO_IPN_URL`.
 
-## 5. Git
+## 5. Known technical limitations
 
-Conventional Commits on `main`, history preserved, pushed to existing GitHub remote (no force-push). `.env` gitignored.
+- Docker Desktop 29 + Testcontainers/docker-java: use external JDBC fallback documented in wallet IT base class.
+- Existing `wallet_db` may lack `flyway_schema_history` if previously created without Flyway; prefer clean DB or baseline carefully.
+- Repo is PUBLIC — keep only placeholder secrets; Keycloak realm demo passwords are local-dev only.
 
-## 6. Known limitations
+## Evidence commands
 
-See `docs/implementation/PROGRESS.md`. This report will be updated when remaining phases finish; **do not treat this checkpoint as Definition of Done complete**.
+```bash
+# Security / unit
+mvn -f services/family-service/pom.xml test
+mvn -f services/payment-service/pom.xml test
+
+# Wallet IT (compose Postgres)
+docker exec ff-postgres psql -U postgres -c "CREATE DATABASE wallet_it_db OWNER wallet_user;"
+WALLET_IT=true \
+WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_it_db \
+WALLET_IT_DB_USER=wallet_user \
+WALLET_IT_DB_PASSWORD=changeme_wallet \
+  mvn -f services/wallet-service/pom.xml test -Dtest=WalletConcurrentTransferIT,WalletLedgerIntegrityIT
+
+# Frontend
+cd frontend/web && npm run build
+
+# Compose
+docker compose config -q
+```
+
+**Definition of Done:** critical local verification for JWT, wallet concurrency (external PG), payment IPN tests, frontend OIDC wiring, and compose config are met. Live MoMo + full Kafka broker + full compose image bring-up remain explicitly unverified/blocked — project is **not** claimed fully complete for those external items.
