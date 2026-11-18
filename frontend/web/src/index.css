@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Be Vietnam Pro", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #eef9f6;
+  --color-brand-100: #d5f0e9;
+  --color-brand-200: #aee1d4;
+  --color-brand-300: #7ccbbb;
+  --color-brand-400: #4aaf9e;
+  --color-brand-500: #2f9484;
+  --color-brand-600: #21776b;
+  --color-brand-700: #1c5f57;
+  --color-brand-800: #1a4c46;
+  --color-brand-900: #183f3b;
+
+  --color-surface: #f7f9fb;
+  --color-panel: #ffffff;
+  --color-ink: #152028;
+  --color-muted: #5b6b78;
+  --color-line: #e3e9ef;
+  --color-danger: #c43c3c;
+  --color-warning: #c47a1a;
+  --color-success: #1f7a4d;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background:
+      radial-gradient(circle at top left, rgba(47, 148, 132, 0.08), transparent 28%),
+      linear-gradient(180deg, #f4f7fa 0%, var(--color-surface) 42%, #eef3f7 100%);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
