@@ -1,51 +1,36 @@
 # Implementation Progress
 
-**Updated:** 2026-11-18 (checkpoint 2)
+**Updated:** 2026-11-18 (checkpoint 3)
 
-**Remote:** push pending after this checkpoint commits
+**Remote:** `origin/main` tracking — push after this commit
 
-## Completed & verified
+## Completed & verified (mvn test / package)
 
-| Milestone | Verification |
-|-----------|--------------|
-| INITIAL_AUDIT | Source + command audit |
-| Wallet double-entry ledger | `mvn test` wallet OK (3) |
-| Family membership + authz | `mvn test` family OK (10) |
-| Payment MoMo adapter + IPN + Fake | `mvn test` payment OK (13) |
-| Profile provision/preferences/consents | `mvn test` profile OK |
-| API Gateway scaffold | `mvn package` OK |
-| Wallet Kafka outbox/inbox consumer | code in; Kafka default off |
-| Keycloak realm import JSON | `infra/keycloak/family-finance-realm.json` |
-| CI workflow | `.github/workflows/ci.yml` |
+| Area | Notes |
+|------|-------|
+| Audit + wallet ledger | earlier commits |
+| Family authz | earlier |
+| Payment MoMo + IPN + saga outbox | 13+ tests; live sandbox pending credentials |
+| Profile provision | OK |
+| API Gateway + CI + Keycloak realm + Mailpit | OK |
+| Wallet Kafka inbox/outbox (optional) | KAFKA_ENABLED=false default |
+| Expense wallet-funded workflow | tests OK |
+| Budget + allowance saga states | tests OK |
+| Household inventory + InventoryLow outbox | tests OK |
+| Frontend API v1 wiring | build OK; mock still default |
+| K8s starter manifests | structure only |
 
-## Payment APIs
+## Remaining for Definition of Done
 
-- `POST /api/v1/payments` (create + provider initiate, returns payUrl)
-- `GET /api/v1/payments`, `GET /api/v1/payments/{id}`
-- `POST /api/v1/payments/momo/ipn` (HMAC verify, dedupe, outbox `PaymentProviderPaid`)
-- Providers: `MOMO_SANDBOX`, `FAKE_PAYMENT`
-- Docs: `docs/payment/MOMO_SANDBOX.md`
+- Notification + Analytics event consumers / read models
+- JWT enforcement on all services + cross-family IT
+- Testcontainers concurrency wallet tests
+- Full Compose app containers + observability dashboards
+- Frontend complete non-mock flows (wallet list API, Keycloak login)
+- FINAL_IMPLEMENTATION_REPORT.md
+- MoMo live sandbox verification (needs owner credentials)
 
-## Profile APIs
+## Honest blockers
 
-- `POST /api/v1/profiles/provision`
-- `GET/PUT /api/v1/profiles/me`
-- preferences + consents under `/me/*`
-
-## Remaining (Definition of Done not fully met)
-
-1. Payment outbox Kafka publisher + WalletCreditPosted → COMPLETED saga consumer
-2. Budget/allowance/expense recoverable workflows
-3. Household / notification / analytics event consumers
-4. JWT Resource Server enforcement on all services
-5. Frontend `VITE_USE_MOCK=false` real API wiring
-6. Testcontainers concurrency tests
-7. Full Docker Compose service containers + observability + K8s
-8. FINAL_IMPLEMENTATION_REPORT.md
-
-## Known limitations
-
-- MoMo live sandbox **not** verified (credentials pending)
-- Kafka disabled by default (`KAFKA_ENABLED=false`)
-- Frontend still defaults to mock
-- JWT security still placeholder on most services
+- MoMo credentials not in env → live IPN unverified
+- Subagent model quota limited some parallel work; continued on composer

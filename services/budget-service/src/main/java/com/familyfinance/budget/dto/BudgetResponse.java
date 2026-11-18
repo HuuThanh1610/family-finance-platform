@@ -2,7 +2,7 @@ package com.familyfinance.budget.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record BudgetResponse(
@@ -14,6 +14,10 @@ public record BudgetResponse(
         Long totalLimit,
         String currencyCode,
         String status,
+        Long totalSpent,
+        Long remainingAmount,
+        boolean overBudget,
+        List<BudgetCategoryResponse> categories,
         Instant createdAt,
         Instant updatedAt
 ) {
