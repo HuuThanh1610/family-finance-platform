@@ -131,6 +131,13 @@ public class PaymentOrderService {
     public PaymentOrderResponse markCompleted(UUID id) {
         PaymentOrder order = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PaymentOrder", id));
+        PaymentStatus current = PaymentStatus.fromDbValue(order.getStatus());
+        if (current == PaymentStatus.COMPLETED) {
+            return toResponse(order);
+        }
+        if (current != PaymentStatus.CREDIT_PENDING) {
+            throw new InvalidPaymentStateForIpnException(id, current);
+        }
         PaymentOrderStateMachine.transition(order, PaymentStatus.COMPLETED);
         repository.save(order);
         return toResponse(order);
