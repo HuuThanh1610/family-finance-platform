@@ -50,7 +50,9 @@ familyfinance:
     topics:
       payment-events: payment.provider.events
       budget-events: budget.domain.events
+      expense-events: expense.domain.events
       wallet-domain-events: wallet.domain.events
+      wallet-ledger-events: wallet.ledger.events
   outbox:
     poll-interval-ms: 2000
 
