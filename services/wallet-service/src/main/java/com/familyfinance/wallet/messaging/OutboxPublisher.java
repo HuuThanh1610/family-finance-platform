@@ -40,7 +40,8 @@ public class OutboxPublisher {
     @Scheduled(fixedDelayString = "${familyfinance.outbox.poll-interval-ms:2000}")
     @Transactional
     public void publishPending() {
-        List<OutboxEvent> batch = outboxEventRepository.findTop50ByStatusOrderByCreatedAtAsc("PENDING");
+        List<OutboxEvent> batch = outboxEventRepository.findTop50ByStatusInOrderByCreatedAtAsc(
+                java.util.Set.of("PENDING", "FAILED"));
         for (OutboxEvent event : batch) {
             try {
                 String topic = topicFor(event.getEventType());
@@ -54,6 +55,9 @@ public class OutboxPublisher {
                         event.getPayload()
                 );
                 String key = event.getAggregateId().toString();
+                if (event.getPayload() != null && event.getPayload().get("familyId") != null) {
+                    key = event.getPayload().get("familyId").toString();
+                }
                 String body = objectMapper.writeValueAsString(message);
                 kafkaTemplate.send(topic, key, body).get();
                 event.setStatus("PUBLISHED");
@@ -71,6 +75,7 @@ public class OutboxPublisher {
         return switch (eventType) {
             case "WalletCreditPosted", "WalletDebitPosted", "WalletTransferPosted",
                  "wallet.ledger.posted" -> "wallet.ledger.events";
+            case "AllowanceDisbursementCompleted", "AllowanceDisbursementFailed" -> "wallet.domain.events";
             default -> "wallet.domain.events";
         };
     }
