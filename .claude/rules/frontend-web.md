@@ -1,0 +1,13 @@
+---
+paths:
+  - "frontend/web/**"
+---
+
+# Frontend web
+
+- React 19 + TypeScript + Vite. Reuse `src/services`, `features/*`, `hooks`, `components`, `types`—no parallel API clients or mock stacks.
+- Auth: existing Keycloak OIDC PKCE (`features/auth`). Never hardcode tokens/secrets.
+- Real API is default (`VITE_USE_MOCK=false`). Mock only when explicitly `VITE_USE_MOCK=true`.
+- Keep DTO/types aligned with backend responses. Handle loading, error, and empty states like neighboring screens.
+- Follow existing Tailwind/component patterns; avoid redesigns and new UI deps without need.
+- Do not build UI for endpoints that do not exist. Prefer `npm run lint` / `npm run build` for the web package after changes.

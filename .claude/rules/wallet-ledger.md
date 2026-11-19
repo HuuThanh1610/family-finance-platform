@@ -1,0 +1,18 @@
+---
+paths:
+  - "services/wallet-service/**"
+---
+
+# Wallet ledger
+
+Read `docs/database/wallet-ledger-accounting.md` and `LedgerPostingServiceImpl` before any accounting change.
+
+- Wallet Service owns wallets, journal, outbox, and `wallet_balances`. No other service may update balances.
+- All money movement goes through `LedgerPostingService.postBalancedTransaction` (or `reverseTransaction`).
+- Amounts are positive `BIGINT` VND with explicit `DEBIT`/`CREDIT`. Every journal: Σ DEBIT = Σ CREDIT.
+- Liability wallet: `WALLET_LIABILITY`, normal balance CREDIT; available = credits − debits.
+- Top-up: DEBIT `PSP_CLEARING`, CREDIT liability. Transfer: DEBIT source liability, CREDIT dest. Expense: DEBIT liability, CREDIT `EXPENSE_CLEARING`.
+- Preserve idempotency keys + business references; same key must not double-post.
+- Keep posting + balance update atomic; use existing pessimistic locks and deterministic wallet-id lock order; reject overspend.
+- Never mutate posted rows—post a reversing journal. Verify journal vs `wallet_balances` after changes.
+- Do not introduce a second balance store or bypass posting for “simple” updates.

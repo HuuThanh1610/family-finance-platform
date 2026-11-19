@@ -1,0 +1,17 @@
+---
+description: "Spring Boot Java backend conventions for Family Finance services"
+globs: "services/**/*.java,services/**/pom.xml"
+alwaysApply: false
+---
+
+# Backend Java
+
+- Java 21; Spring Boot **3.3.5** parent (match the service `pom.xml`—do not bump casually).
+- Package root: `com.familyfinance.<service>`. Follow existing layout (`config`, `controller`, `service`, `repository`, `entity`, `dto`, `messaging`, `security`/`support`).
+- Constructor injection only; no field `@Autowired`.
+- Controllers: HTTP mapping + `@Valid` only. Business rules stay in application/service classes.
+- Repositories: persistence only. Prefer existing exception types/`GlobalExceptionHandler` patterns.
+- API boundaries use DTOs/records already established in that service—do not expose JPA entities.
+- Transactions: keep `@Transactional` on the service methods that already own the unit of work; do not invent nested TX patterns.
+- Prefer `Optional` and immutable collections as neighboring code does; avoid new interfaces for single implementations.
+- Do not add Maven dependencies without a concrete requirement. Match formatting/naming of the service you edit.
