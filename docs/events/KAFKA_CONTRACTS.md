@@ -112,6 +112,63 @@ WALLET_IT=true WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_db \
   mvn -f services/wallet-service/pom.xml test -Dtest='*IT'
 ```
 
+## Expense wallet settlement saga
+
+Sequence: `submitForPayment` → `ExpensePaymentRequested` → Wallet `EXPENSE_PAYMENT` journal →
+`WalletDebitPosted` | `ExpensePaymentFailed` → Expense `PAID` | `FAILED`.
+
+**Requested ≠ paid.** Expense stays `PENDING_WALLET` until a verified Wallet outcome is applied.
+HTTP `mark-paid` shortcut was removed; only Wallet ledger outcomes complete payment.
+
+### ExpensePaymentRequested
+
+| Field | Value |
+|-------|--------|
+| Topic | `expense.domain.events` |
+| Producer | expense-service outbox |
+| Consumer | wallet-service (`ExpensePaymentRequestedConsumer`) |
+| Authz | `expense.create` via Family internal API |
+| Business idempotency | `expense-pay:{expenseId}` |
+| Reference | `expense:{expenseId}` |
+
+```json
+{
+  "expenseId": "uuid",
+  "familyId": "uuid",
+  "walletId": "uuid",
+  "amount": 150000,
+  "currencyCode": "VND",
+  "referenceId": "expense:uuid",
+  "idempotencyKey": "expense-pay:uuid"
+}
+```
+
+Wallet validates the event `walletId` against its own DB (ACTIVE, same family, VND). Not an internal transfer.
+
+Journal: DEBIT `WALLET_LIABILITY`, CREDIT family `EXPENSE_CLEARING` (`transactionType=EXPENSE_PAYMENT`).
+
+### WalletDebitPosted (success)
+
+| Field | Value |
+|-------|--------|
+| Topic | `wallet.ledger.events` |
+| Producer | ledger outbox (`EXPENSE_PAYMENT`) |
+| Consumer | expense-service (`WalletExpenseOutcomeConsumers.onLedger`) |
+
+Expense applies PAID only when `transactionType=EXPENSE_PAYMENT` and `referenceId` / family / wallet / amount match the pending expense.
+
+### ExpensePaymentFailed
+
+| Field | Value |
+|-------|--------|
+| Topic | `wallet.domain.events` |
+| Unique | `(event_type, aggregate_id)` for `ExpensePaymentFailed` |
+| Consumer | expense-service → `FAILED` |
+
+Payload: `expenseId`, `familyId`, `walletId?`, `errorCode`, `message`, `referenceId`, `idempotencyKey`.
+
+Transient Kafka/DB errors stay retryable and must not emit permanent failure.
+
 ## InventoryLow
 
 | Field | Value |
