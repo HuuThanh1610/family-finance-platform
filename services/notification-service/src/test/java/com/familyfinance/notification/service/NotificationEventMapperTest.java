@@ -45,4 +45,22 @@ class NotificationEventMapperTest {
         ));
         assertThat(draft).isEmpty();
     }
+
+    @Test
+    void inventoryLowRequiresMembershipFanOutNotPayloadRecipient() {
+        var draft = NotificationEventMapper.toDraft(new DomainEventMessage(
+                UUID.randomUUID(),
+                "InventoryLow",
+                "inventory_item",
+                UUID.randomUUID(),
+                null,
+                Instant.now(),
+                Map.of(
+                        "familyId", UUID.randomUUID().toString(),
+                        "quantityOnHand", 1,
+                        "reorderLevel", 5
+                )
+        ));
+        assertThat(draft).isEmpty();
+    }
 }

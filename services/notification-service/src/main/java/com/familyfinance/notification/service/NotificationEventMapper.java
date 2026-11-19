@@ -27,6 +27,10 @@ public final class NotificationEventMapper {
         if (!isNotifiable(event.eventType())) {
             return Optional.empty();
         }
+        // InventoryLow recipients are resolved via Family membership (OWNER/PARENT), not payload.
+        if ("InventoryLow".equals(event.eventType())) {
+            return Optional.empty();
+        }
         Map<String, Object> payload = event.payload() != null ? event.payload() : Map.of();
         UUID familyId = uuidFromPayload(payload, "familyId");
         UUID recipient = uuidFromPayload(payload, "recipientUserId", "userProfileId", "inviteeUserId");
@@ -37,18 +41,20 @@ public final class NotificationEventMapper {
             return Optional.empty();
         }
 
-        String templateKey = templateKeyFor(event.eventType());
-        String title = titleFor(event.eventType(), payload);
-        String body = bodyFor(event.eventType(), payload, event.aggregateId());
-        return Optional.of(new NotificationDraft(
+        return Optional.of(draftForRecipient(event, recipient, familyId));
+    }
+
+    public static NotificationDraft draftForRecipient(DomainEventMessage event, UUID recipient, UUID familyId) {
+        Map<String, Object> payload = event.payload() != null ? event.payload() : Map.of();
+        return new NotificationDraft(
                 recipient,
                 familyId,
-                templateKey,
+                templateKeyFor(event.eventType()),
                 "IN_APP",
-                title,
-                body,
+                titleFor(event.eventType(), payload),
+                bodyFor(event.eventType(), payload, event.aggregateId()),
                 payload
-        ));
+        );
     }
 
     private static String templateKeyFor(String eventType) {

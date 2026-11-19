@@ -282,6 +282,8 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_ENABLED: ${KAFKA_ENABLED:-true}
       SECURITY_ENABLED: ${SECURITY_ENABLED:-true}
+      FAMILY_SERVICE_URL: http://family-service:8082
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal-change-me}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
     ports:
       - "8088:8088"
@@ -292,6 +294,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      family-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8088/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s

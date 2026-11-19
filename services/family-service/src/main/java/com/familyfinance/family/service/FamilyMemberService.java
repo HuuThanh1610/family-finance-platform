@@ -1,6 +1,7 @@
 package com.familyfinance.family.service;
 
 import com.familyfinance.family.dto.FamilyMemberResponse;
+import com.familyfinance.family.dto.InternalFamilyMemberResponse;
 import com.familyfinance.family.dto.UpdateMemberRoleRequest;
 import com.familyfinance.family.entity.FamilyMember;
 import com.familyfinance.family.exception.BadRequestException;
@@ -41,6 +42,14 @@ public class FamilyMemberService {
         authorizationService.requireMember(familyId, actorUserId);
         return memberRepository.findByFamilyIdAndStatus(familyId, FamilyConstants.MEMBER_ACTIVE).stream()
                 .map(mapper::toMemberResponse)
+                .toList();
+    }
+
+    /** Internal S2S: active members only (LEFT/REMOVED excluded). */
+    @Transactional(readOnly = true)
+    public List<InternalFamilyMemberResponse> listActiveMembersInternal(UUID familyId) {
+        return memberRepository.findByFamilyIdAndStatus(familyId, FamilyConstants.MEMBER_ACTIVE).stream()
+                .map(m -> new InternalFamilyMemberResponse(m.getUserProfileId(), m.getRoleCode(), m.getStatus()))
                 .toList();
     }
 

@@ -48,6 +48,50 @@ Wallet credits with idempotency key `pay-credit:{paymentOrderId}`.
 
 Emitted after ledger posts `PAYMENT_TOPUP`. Payment Service transitions `CREDIT_PENDING` → `COMPLETED`.
 
+## InventoryLow
+
+| Field | Value |
+|-------|--------|
+| Topic | `household.domain.events` |
+| Producer | household-service transactional outbox (`OutboxPublisher`) |
+| Consumer | notification-service (`NotificationKafkaConsumers.onHousehold`) |
+| Event type | `InventoryLow` |
+| Aggregate | `inventory_item` / inventory item id |
+| Partition key | `familyId` (fallback aggregateId) |
+| Idempotency | `inbox_events.event_id` = outbox row id (`eventId`) |
+
+### Payload (required)
+
+```json
+{
+  "inventoryItemId": "uuid",
+  "familyId": "uuid",
+  "quantityOnHand": 2,
+  "reorderLevel": 5
+}
+```
+
+No recipient fields are included. Domain dedup: `inventory_items.low_stock_alerted` prevents a second outbox write until stock rises above reorder level.
+
+### Recipient-resolution policy
+
+1. Notification Service calls Family Service `GET /internal/families/{familyId}/members` (header `X-Internal-Api-Key`).
+2. Active members only (`status=ACTIVE`; `LEFT` / `REMOVED` excluded by Family query).
+3. Alert roles: **OWNER** and **PARENT** only (CHILD / VIEWER / ADULT_MEMBER excluded).
+4. Recipient identity = `userProfileId` (same UUID used as `notifications.recipient_user_id`).
+5. One in-app notification per recipient; inbox `eventId` prevents fan-out replay duplicates.
+
+### Retry / failure
+
+- Household outbox: publish after commit; mark `PUBLISHED` only after Kafka ack; on broker failure stay/mark `FAILED` and retry on next poll (pessimistic row lock on claim).
+- Notification: Family lookup failure before inbox claim → exception → Kafka redelivery. Missing `familyId` → inbox `SKIPPED`. Processed inbox rows are not re-applied.
+
+### Known limitations
+
+- No Kafka DLT wiring for household topic in this package (same as other domain topics).
+- Concurrent outbox publishers rely on DB row locks, not a distributed claim lease.
+- End-to-end broker tests are not part of the default unit suite (`KAFKA_ENABLED=false`).
+
 ## DLQ
 
 Failed consumers after retries → `{topic}.DLT` (configured per service when Kafka enabled).

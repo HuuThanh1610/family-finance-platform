@@ -35,6 +35,10 @@ spring:
 familyfinance:
   security:
     enabled: ${SECURITY_ENABLED:false}
+  family-service:
+    base-url: ${FAMILY_SERVICE_URL:http://localhost:8082}
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
   kafka:
     enabled: ${KAFKA_ENABLED:false}
     topics:
