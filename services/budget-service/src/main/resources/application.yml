@@ -22,13 +22,19 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:budget-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      auto-startup: ${familyfinance.kafka.enabled:false}
 
-kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-  consumer:
-    group-id: ${KAFKA_CONSUMER_GROUP:${spring.application.name}}
-    auto-offset-reset: earliest
-  # TODO: Kafka consumers/producers & outbox relay — reserved learning topic
 server:
   port: ${SERVER_PORT:8085}
 
@@ -62,3 +68,10 @@ familyfinance:
     base-url: ${FAMILY_SERVICE_URL:http://localhost:8082}
   internal:
     api-key: ${INTERNAL_API_KEY:}
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    topics:
+      budget-events: budget.domain.events
+      wallet-domain-events: wallet.domain.events
+  outbox:
+    poll-interval-ms: 2000

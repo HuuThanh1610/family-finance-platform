@@ -9,4 +9,8 @@ import java.util.UUID;
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
     List<OutboxEvent> findTop50ByStatusOrderByCreatedAtAsc(String status);
+
+    List<OutboxEvent> findTop50ByStatusInOrderByCreatedAtAsc(java.util.Collection<String> statuses);
+
+    boolean existsByEventTypeAndAggregateId(String eventType, UUID aggregateId);
 }

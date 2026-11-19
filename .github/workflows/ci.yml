@@ -99,9 +99,9 @@ jobs:
           done
           echo "PostgreSQL did not become ready" >&2
           exit 1
-      - name: Run wallet *IT (9 tests)
+      - name: Run wallet *IT (11 tests)
         run: mvn -B -f services/wallet-service/pom.xml test -Dtest='*IT'
-      - name: Assert Surefire 9/0/0/0
+      - name: Assert Surefire 11/0/0/0
         run: |
           python3 <<'PY'
           from pathlib import Path
@@ -117,6 +117,6 @@ jobs:
               skipped += int(root.attrib.get("skipped", 0))
               print(f"{path.name}: tests={root.attrib.get('tests')} failures={root.attrib.get('failures')} errors={root.attrib.get('errors')} skipped={root.attrib.get('skipped')}")
           print(f"TOTAL tests={tests} failures={failures} errors={errors} skipped={skipped}")
-          assert tests == 9, f"expected 9 tests, got {tests}"
+          assert tests == 11, f"expected 11 tests, got {tests}"
           assert failures == 0 and errors == 0 and skipped == 0, "expected zero failures/errors/skipped"
           PY

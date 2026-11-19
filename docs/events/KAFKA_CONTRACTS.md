@@ -8,7 +8,7 @@ Delivery: **at-least-once**. Consumers must be idempotent via `inbox_events.even
 |-------|-----------|-----------|-----|
 | `payment.provider.events` | payment-service outbox | wallet-service | `paymentOrderId` / walletId |
 | `wallet.ledger.events` | wallet-service outbox | payment, notification, analytics | `walletId` or transaction aggregate |
-| `wallet.domain.events` | wallet-service | analytics, notification | aggregateId |
+| `wallet.domain.events` | wallet-service | budget, analytics, notification | familyId / allowance requestId |
 | `family.domain.events` | family-service | notification, profile | familyId |
 | `budget.domain.events` | budget-service | wallet, notification | familyId |
 | `expense.domain.events` | expense-service | wallet, notification | familyId |
@@ -47,6 +47,70 @@ Wallet credits with idempotency key `pay-credit:{paymentOrderId}`.
 ## WalletCreditPosted
 
 Emitted after ledger posts `PAYMENT_TOPUP`. Payment Service transitions `CREDIT_PENDING` → `COMPLETED`.
+
+## Allowance disbursement saga
+
+Sequence: approve (Budget) → `AllowanceDisbursementRequested` → Wallet ledger transfer →
+`AllowanceDisbursementCompleted` | `AllowanceDisbursementFailed` → Budget `DISBURSED` | `DISBURSEMENT_FAILED`.
+
+**Approval ≠ disbursement.** Budget stays `APPROVED_PENDING_DISBURSEMENT` until a Wallet outcome event is applied.
+
+### AllowanceDisbursementRequested
+
+| Field | Value |
+|-------|--------|
+| Topic | `budget.domain.events` |
+| Producer | budget-service outbox (`OutboxPublisher`) |
+| Consumer | wallet-service (`AllowanceDisbursementRequestedConsumer`) |
+| Aggregate | `allowance_request` / request id |
+| Business idempotency | `allowance-disbursement:{requestId}` (ledger) |
+| Event idempotency | wallet `inbox_events.event_id` |
+
+```json
+{
+  "requestId": "uuid",
+  "familyId": "uuid",
+  "requesterMemberId": "uuid",
+  "amount": 150000,
+  "currencyCode": "VND",
+  "reason": "string"
+}
+```
+
+Wallet resolves wallets authoritatively (does **not** trust client wallet IDs):
+
+- Source: single ACTIVE `FAMILY_POOL` for `familyId`
+- Destination: single ACTIVE `MEMBER_WALLET` with `ownerMemberId = requesterMemberId` in the same family
+
+Posting: DEBIT source `WALLET_LIABILITY`, CREDIT destination `WALLET_LIABILITY` (`INTERNAL_TRANSFER`).
+Reference id: `allowance:{requestId}`.
+
+### AllowanceDisbursementCompleted
+
+| Field | Value |
+|-------|--------|
+| Topic | `wallet.domain.events` |
+| Producer | wallet outbox (same TX as successful ledger post / recoverable on idempotent replay) |
+| Consumer | budget-service (`WalletDisbursementOutcomeConsumer`) → `DISBURSED` |
+
+Payload includes `requestId`, `familyId`, `sourceWalletId`, `destinationWalletId`, `transactionId`, `amount`, `currencyCode`, `referenceId`.
+
+### AllowanceDisbursementFailed
+
+Permanent business failures (insufficient funds, missing/ambiguous wallets, ownership/family mismatch, invalid amount/currency). No ledger posting. Budget → `DISBURSEMENT_FAILED`.
+
+Payload: `requestId`, `familyId`, `errorCode`, `message` (safe diagnostics only).
+
+Transient failures (DB/Kafka) leave inbox `FAILED` / outbox retryable and must not be converted into `DISBURSEMENT_FAILED`.
+
+### Local testing
+
+```bash
+mvn -f services/budget-service/pom.xml test
+mvn -f services/wallet-service/pom.xml test
+WALLET_IT=true WALLET_IT_JDBC_URL=jdbc:postgresql://localhost:5432/wallet_db \
+  mvn -f services/wallet-service/pom.xml test -Dtest='*IT'
+```
 
 ## InventoryLow
 

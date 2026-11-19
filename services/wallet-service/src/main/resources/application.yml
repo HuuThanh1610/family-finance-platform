@@ -49,6 +49,8 @@ familyfinance:
     enabled: ${KAFKA_ENABLED:false}
     topics:
       payment-events: payment.provider.events
+      budget-events: budget.domain.events
+      wallet-domain-events: wallet.domain.events
   outbox:
     poll-interval-ms: 2000
 

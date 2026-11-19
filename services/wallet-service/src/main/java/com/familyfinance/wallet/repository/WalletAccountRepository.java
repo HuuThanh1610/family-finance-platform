@@ -15,6 +15,11 @@ public interface WalletAccountRepository extends JpaRepository<WalletAccount, UU
 
     List<WalletAccount> findByFamilyId(UUID familyId);
 
+    List<WalletAccount> findByFamilyIdAndWalletTypeAndStatus(UUID familyId, String walletType, String status);
+
+    List<WalletAccount> findByFamilyIdAndOwnerMemberIdAndWalletTypeAndStatus(
+            UUID familyId, UUID ownerMemberId, String walletType, String status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select w from WalletAccount w where w.id = :id")
     Optional<WalletAccount> findByIdForUpdate(@Param("id") UUID id);
