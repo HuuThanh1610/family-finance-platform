@@ -1,0 +1,14 @@
+---
+description: "Docker Compose, infra, and GitHub Actions conventions"
+globs: "docker-compose.yml,infra/**,.github/workflows/**,scripts/**,.env.example"
+alwaysApply: false
+---
+
+# Infrastructure & CI
+
+- Keep services independently deployable. Reuse Compose profiles (`full`, `observability`, `web`) and existing healthchecks/depends_on.
+- Never put real secrets in Compose, CI logs, or committed env files—placeholders in `.env.example` only.
+- Dockerfiles stay multi-stage/production-oriented. Do not delete volumes/user data for routine verification.
+- Observability (Prometheus scrape, OTel→Tempo, Grafana datasources) must match actual app instrumentation (`management.otlp`, Micrometer).
+- GitHub Actions (`.github/workflows/ci.yml`): preserve compose-config, frontend lint/build, and per-service Maven tests. Do not weaken gates for speed without explicit approval.
+- Prefer scoped script changes under `scripts/`; document new env vars as placeholders only.
