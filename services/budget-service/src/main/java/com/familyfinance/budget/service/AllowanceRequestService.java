@@ -97,12 +97,47 @@ public class AllowanceRequestService {
                 "familyId", request.getFamilyId().toString(),
                 "requesterMemberId", request.getRequesterMemberId().toString(),
                 "amount", request.getAmount(),
-                "reason", request.getReason()
+                "currencyCode", "VND",
+                "reason", request.getReason() != null ? request.getReason() : ""
         ));
         outbox.setCreatedAt(now);
         outbox.setStatus("PENDING");
         outboxEventRepository.save(outbox);
 
+        return toResponse(request);
+    }
+
+    /**
+     * Wallet saga success. Idempotent when already DISBURSED.
+     * Does not mark DISBURSED merely because an outbox was published.
+     */
+    @Transactional
+    public AllowanceRequestResponse applyDisbursementCompleted(UUID requestId) {
+        AllowanceRequest request = requestRepository.findByIdForUpdate(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("AllowanceRequest", requestId));
+        if (AllowanceRequestStatus.DISBURSED.name().equals(request.getStatus())) {
+            return toResponse(request);
+        }
+        AllowanceRequestStateMachine.transition(request, AllowanceRequestStatus.DISBURSED);
+        requestRepository.save(request);
+        return toResponse(request);
+    }
+
+    /**
+     * Permanent wallet failure (e.g. insufficient funds). Idempotent when already failed.
+     */
+    @Transactional
+    public AllowanceRequestResponse applyDisbursementFailed(UUID requestId, String errorCode) {
+        AllowanceRequest request = requestRepository.findByIdForUpdate(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("AllowanceRequest", requestId));
+        if (AllowanceRequestStatus.DISBURSEMENT_FAILED.name().equals(request.getStatus())) {
+            return toResponse(request);
+        }
+        if (AllowanceRequestStatus.DISBURSED.name().equals(request.getStatus())) {
+            return toResponse(request);
+        }
+        AllowanceRequestStateMachine.transition(request, AllowanceRequestStatus.DISBURSEMENT_FAILED);
+        requestRepository.save(request);
         return toResponse(request);
     }
 

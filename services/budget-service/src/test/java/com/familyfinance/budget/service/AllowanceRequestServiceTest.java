@@ -99,6 +99,55 @@ class AllowanceRequestServiceTest {
         assertThat(response.status()).isEqualTo(AllowanceRequestStatus.DISBURSED.name());
     }
 
+    @Test
+    void approveOutboxPreservesRequestIdentityAndCurrency() {
+        AllowanceRequest pending = request("PENDING");
+        when(requestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(pending));
+        when(requestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.approve(requestId, new ApproveAllowanceRequest(approverId, "OK"), actorProfileId);
+
+        ArgumentCaptor<OutboxEvent> outboxCaptor = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxEventRepository).save(outboxCaptor.capture());
+        assertThat(outboxCaptor.getValue().getPayload())
+                .containsEntry("requestId", requestId.toString())
+                .containsEntry("currencyCode", "VND")
+                .containsKeys("familyId", "requesterMemberId", "amount");
+    }
+
+    @Test
+    void repeatedApproveWhilePendingDisbursementFailsWithoutSecondOutbox() {
+        AllowanceRequest approved = request(AllowanceRequestStatus.APPROVED_PENDING_DISBURSEMENT.name());
+        when(requestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(approved));
+
+        assertThatThrownBy(() ->
+                service.approve(requestId, new ApproveAllowanceRequest(approverId, "again"), actorProfileId))
+                .isInstanceOf(InvalidAllowanceStateException.class);
+        verify(outboxEventRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void applyDisbursementCompletedIsIdempotentWhenAlreadyDisbursed() {
+        AllowanceRequest disbursed = request(AllowanceRequestStatus.DISBURSED.name());
+        when(requestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(disbursed));
+
+        var response = service.applyDisbursementCompleted(requestId);
+
+        assertThat(response.status()).isEqualTo(AllowanceRequestStatus.DISBURSED.name());
+        verify(requestRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void applyDisbursementFailedFromPendingDisbursement() {
+        AllowanceRequest approved = request(AllowanceRequestStatus.APPROVED_PENDING_DISBURSEMENT.name());
+        when(requestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(approved));
+        when(requestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = service.applyDisbursementFailed(requestId, "INSUFFICIENT_FUNDS");
+
+        assertThat(response.status()).isEqualTo(AllowanceRequestStatus.DISBURSEMENT_FAILED.name());
+    }
+
   private AllowanceRequest request(String status) {
         AllowanceRequest r = new AllowanceRequest();
         r.setId(requestId);
