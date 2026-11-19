@@ -1,9 +1,24 @@
 package com.familyfinance.household.repository;
 
 import com.familyfinance.household.entity.OutboxEvent;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.QueryHints;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.QueryHint;
+
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
+
+    /**
+     * Claim pending/failed outbox rows for publish. Pessimistic write locks reduce
+     * duplicate publishes when multiple household instances poll concurrently.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
+    List<OutboxEvent> findTop50ByStatusInOrderByCreatedAtAsc(Collection<String> statuses);
 }

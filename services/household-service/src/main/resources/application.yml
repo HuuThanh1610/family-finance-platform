@@ -22,6 +22,14 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      auto-startup: ${familyfinance.kafka.enabled:false}
+
 server:
   port: ${SERVER_PORT:8087}
 
@@ -49,3 +57,9 @@ springdoc:
 familyfinance:
   security:
     enabled: ${SECURITY_ENABLED:false}
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    topics:
+      household-events: household.domain.events
+  outbox:
+    poll-interval-ms: 2000
