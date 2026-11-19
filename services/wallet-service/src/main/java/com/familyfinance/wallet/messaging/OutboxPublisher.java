@@ -75,7 +75,8 @@ public class OutboxPublisher {
         return switch (eventType) {
             case "WalletCreditPosted", "WalletDebitPosted", "WalletTransferPosted",
                  "wallet.ledger.posted" -> "wallet.ledger.events";
-            case "AllowanceDisbursementCompleted", "AllowanceDisbursementFailed" -> "wallet.domain.events";
+            case "AllowanceDisbursementCompleted", "AllowanceDisbursementFailed",
+                 "ExpensePaymentFailed" -> "wallet.domain.events";
             default -> "wallet.domain.events";
         };
     }

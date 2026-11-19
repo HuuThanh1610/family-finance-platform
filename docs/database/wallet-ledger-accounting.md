@@ -27,7 +27,11 @@ Internal wallets are **liability** accounts (money the platform "owes" the famil
 ### External spend / expense
 
 1. DEBIT wallet `WALLET_LIABILITY` X  
-2. CREDIT `EXPENSE_CLEARING` X  
+2. CREDIT family-level `EXPENSE_CLEARING` X  
+
+`EXPENSE_CLEARING` is a family-scoped ledger account (`wallet_account_id` null),
+`account_kind = LIABILITY`, `normal_balance = CREDIT`, created lazily by Wallet Service
+(`ensureExpenseClearing`). Do not reuse `PSP_CLEARING` for expenses.
 
 ### Reversal
 

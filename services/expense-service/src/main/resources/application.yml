@@ -22,6 +22,19 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:expense-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      auto-startup: ${familyfinance.kafka.enabled:false}
+
 server:
   port: ${SERVER_PORT:8086}
 
@@ -49,3 +62,17 @@ springdoc:
 familyfinance:
   security:
     enabled: ${SECURITY_ENABLED:false}
+  family-auth:
+    enabled: ${FAMILY_AUTH_ENABLED:false}
+  family-service:
+    base-url: ${FAMILY_SERVICE_URL:http://localhost:8082}
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    topics:
+      expense-events: expense.domain.events
+      wallet-ledger-events: wallet.ledger.events
+      wallet-domain-events: wallet.domain.events
+  outbox:
+    poll-interval-ms: 2000

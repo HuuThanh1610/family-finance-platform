@@ -4,6 +4,8 @@ import com.familyfinance.expense.dto.CreateExpenseRequest;
 import com.familyfinance.expense.dto.ExpenseResponse;
 import com.familyfinance.expense.dto.SubmitExpensePaymentRequest;
 import com.familyfinance.expense.service.ExpenseService;
+import com.familyfinance.expense.support.CurrentUserResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +18,11 @@ import java.util.UUID;
 public class ExpenseV1Controller {
 
     private final ExpenseService service;
+    private final CurrentUserResolver currentUserResolver;
 
-    public ExpenseV1Controller(ExpenseService service) {
+    public ExpenseV1Controller(ExpenseService service, CurrentUserResolver currentUserResolver) {
         this.service = service;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @GetMapping
@@ -43,13 +47,10 @@ public class ExpenseV1Controller {
     @PostMapping("/{id}/submit-payment")
     public ExpenseResponse submitPayment(
             @PathVariable UUID id,
-            @Valid @RequestBody SubmitExpensePaymentRequest request
+            @Valid @RequestBody SubmitExpensePaymentRequest request,
+            HttpServletRequest httpRequest
     ) {
-        return service.submitForPayment(id, request);
-    }
-
-    @PostMapping("/{id}/mark-paid")
-    public ExpenseResponse markPaid(@PathVariable UUID id) {
-        return service.markPaid(id);
+        UUID actor = currentUserResolver.requireUserProfileId(httpRequest);
+        return service.submitForPayment(id, request, actor);
     }
 }

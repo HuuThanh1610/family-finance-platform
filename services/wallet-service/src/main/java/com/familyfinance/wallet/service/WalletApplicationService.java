@@ -4,6 +4,7 @@ import com.familyfinance.wallet.domain.EntryType;
 import com.familyfinance.wallet.domain.WalletType;
 import com.familyfinance.wallet.dto.AllowanceDisbursementCommand;
 import com.familyfinance.wallet.dto.CreateWalletRequest;
+import com.familyfinance.wallet.dto.ExpensePaymentCommand;
 import com.familyfinance.wallet.dto.LedgerEntryResponse;
 import com.familyfinance.wallet.dto.LedgerTransactionResponse;
 import com.familyfinance.wallet.dto.TopUpCreditRequest;
@@ -19,6 +20,7 @@ import com.familyfinance.wallet.entity.WalletBalance;
 import com.familyfinance.wallet.exception.BusinessException;
 import com.familyfinance.wallet.exception.InsufficientBalanceException;
 import com.familyfinance.wallet.exception.PermanentAllowanceDisbursementException;
+import com.familyfinance.wallet.exception.PermanentExpensePaymentException;
 import com.familyfinance.wallet.exception.ResourceNotFoundException;
 import com.familyfinance.wallet.repository.LedgerAccountRepository;
 import com.familyfinance.wallet.repository.LedgerEntryRepository;
@@ -27,6 +29,7 @@ import com.familyfinance.wallet.repository.OutboxEventRepository;
 import com.familyfinance.wallet.repository.WalletAccountRepository;
 import com.familyfinance.wallet.repository.WalletBalanceRepository;
 import com.familyfinance.wallet.security.FamilyAuthorizationClient;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -44,9 +47,13 @@ public class WalletApplicationService {
 
     public static final String LIABILITY_CODE = "WALLET_LIABILITY";
     public static final String PSP_CLEARING_CODE = "PSP_CLEARING";
+    public static final String EXPENSE_CLEARING_CODE = "EXPENSE_CLEARING";
     public static final String EVENT_ALLOWANCE_COMPLETED = "AllowanceDisbursementCompleted";
     public static final String EVENT_ALLOWANCE_FAILED = "AllowanceDisbursementFailed";
+    public static final String EVENT_EXPENSE_PAYMENT_FAILED = "ExpensePaymentFailed";
     public static final String IDEMPOTENCY_ALLOWANCE_PREFIX = "allowance-disbursement:";
+    public static final String IDEMPOTENCY_EXPENSE_PREFIX = "expense-pay:";
+    public static final String REF_EXPENSE_PREFIX = "expense:";
 
     private final WalletAccountRepository walletAccountRepository;
     private final LedgerAccountRepository ledgerAccountRepository;
@@ -374,6 +381,118 @@ public class WalletApplicationService {
         return wallets.getFirst();
     }
 
+    /**
+     * External expense spend: DEBIT wallet liability, CREDIT family EXPENSE_CLEARING.
+     * Idempotency {@code expense-pay:{expenseId}}. Success outbox is WalletDebitPosted via ledger.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public LedgerTransactionResponse payExpense(ExpensePaymentCommand command) {
+        if (command.expenseId() == null || command.familyId() == null || command.walletId() == null) {
+            throw new PermanentExpensePaymentException("INVALID_PAYLOAD", "Missing expense payment identifiers");
+        }
+        if (command.amount() <= 0) {
+            throw new PermanentExpensePaymentException("INVALID_AMOUNT", "Amount must be positive");
+        }
+        String currency = command.currencyCode() == null || command.currencyCode().isBlank()
+                ? "VND" : command.currencyCode();
+        if (!"VND".equalsIgnoreCase(currency)) {
+            throw new PermanentExpensePaymentException("UNSUPPORTED_CURRENCY", "Only VND is supported");
+        }
+
+        String referenceId = command.referenceId() != null && !command.referenceId().isBlank()
+                ? command.referenceId()
+                : REF_EXPENSE_PREFIX + command.expenseId();
+        String idempotencyKey = command.idempotencyKey() != null && !command.idempotencyKey().isBlank()
+                ? command.idempotencyKey()
+                : IDEMPOTENCY_EXPENSE_PREFIX + command.expenseId();
+        if (!referenceId.equals(REF_EXPENSE_PREFIX + command.expenseId())) {
+            throw new PermanentExpensePaymentException("INVALID_REFERENCE", "referenceId must be expense:{expenseId}");
+        }
+        if (!idempotencyKey.equals(IDEMPOTENCY_EXPENSE_PREFIX + command.expenseId())) {
+            throw new PermanentExpensePaymentException("INVALID_IDEMPOTENCY_KEY", "idempotencyKey must be expense-pay:{expenseId}");
+        }
+
+        walletAccountRepository.findByIdForUpdate(command.walletId())
+                .orElseThrow(() -> new PermanentExpensePaymentException(
+                        "WALLET_NOT_FOUND", "Wallet not found: " + command.walletId()));
+        WalletAccount wallet = requireWallet(command.walletId());
+        if (!wallet.getFamilyId().equals(command.familyId())) {
+            throw new PermanentExpensePaymentException("FAMILY_MISMATCH", "Wallet does not belong to expense family");
+        }
+        if (!"ACTIVE".equals(wallet.getStatus())) {
+            throw new PermanentExpensePaymentException("WALLET_INACTIVE", "Wallet not active");
+        }
+        if (!"VND".equalsIgnoreCase(wallet.getCurrencyCode())) {
+            throw new PermanentExpensePaymentException("UNSUPPORTED_CURRENCY", "Wallet currency must be VND");
+        }
+
+        LedgerAccount liability = requireLiability(wallet.getId());
+        LedgerAccount clearing = ensureExpenseClearing(wallet.getFamilyId(), Instant.now());
+
+        try {
+            LedgerTransaction tx = ledgerPostingService.postBalancedTransaction(new LedgerPostingService.PostCommand(
+                    wallet.getFamilyId(),
+                    wallet.getId(),
+                    referenceId,
+                    idempotencyKey,
+                    "EXPENSE_PAYMENT",
+                    "Expense payment " + command.expenseId(),
+                    List.of(
+                            new LedgerPostingService.EntryLine(
+                                    liability.getId(), EntryType.DEBIT, command.amount(), "Expense debit"),
+                            new LedgerPostingService.EntryLine(
+                                    clearing.getId(), EntryType.CREDIT, command.amount(), "Expense clearing")
+                    )
+            ));
+            return toTransactionResponse(tx);
+        } catch (InsufficientBalanceException ex) {
+            throw new PermanentExpensePaymentException("INSUFFICIENT_FUNDS", ex.getMessage());
+        }
+    }
+
+    /**
+     * Persist failure outbox in a separate TX after ledger rollback.
+     * Unique (event_type, aggregate_id) prevents duplicate failure rows under concurrency.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordExpensePaymentFailure(ExpensePaymentCommand command, String errorCode, String message) {
+        if (command == null || command.expenseId() == null) {
+            return;
+        }
+        String idempotencyKey = IDEMPOTENCY_EXPENSE_PREFIX + command.expenseId();
+        if (ledgerTransactionRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
+            return;
+        }
+        if (outboxEventRepository.existsByEventTypeAndAggregateId(EVENT_EXPENSE_PAYMENT_FAILED, command.expenseId())) {
+            return;
+        }
+        Instant now = Instant.now();
+        OutboxEvent outbox = new OutboxEvent();
+        outbox.setEventType(EVENT_EXPENSE_PAYMENT_FAILED);
+        outbox.setAggregateType("expense");
+        outbox.setAggregateId(command.expenseId());
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("expenseId", command.expenseId().toString());
+        if (command.familyId() != null) {
+            payload.put("familyId", command.familyId().toString());
+        }
+        if (command.walletId() != null) {
+            payload.put("walletId", command.walletId().toString());
+        }
+        payload.put("errorCode", errorCode);
+        payload.put("message", message != null ? message : errorCode);
+        payload.put("referenceId", REF_EXPENSE_PREFIX + command.expenseId());
+        payload.put("idempotencyKey", idempotencyKey);
+        outbox.setPayload(payload);
+        outbox.setCreatedAt(now);
+        outbox.setStatus("PENDING");
+        try {
+            outboxEventRepository.saveAndFlush(outbox);
+        } catch (DataIntegrityViolationException ex) {
+            // concurrent failure writers — unique index wins
+        }
+    }
+
     @Transactional
     public LedgerTransactionResponse creditFromPayment(TopUpCreditRequest request) {
         WalletAccount wallet = requireWallet(request.walletId());
@@ -439,6 +558,25 @@ public class WalletApplicationService {
                     clearing.setName("PSP clearing / receivable");
                     clearing.setAccountKind("ASSET");
                     clearing.setNormalBalance("DEBIT");
+                    clearing.setCreatedAt(now);
+                    clearing.setUpdatedAt(now);
+                    return ledgerAccountRepository.save(clearing);
+                });
+    }
+
+    /**
+     * Family-level expense clearing (no wallet association).
+     * Documented posting credits this account; normal balance CREDIT (LIABILITY clearing).
+     */
+    LedgerAccount ensureExpenseClearing(UUID familyId, Instant now) {
+        return ledgerAccountRepository.findByFamilyIdAndAccountCodeAndWalletAccountIsNull(familyId, EXPENSE_CLEARING_CODE)
+                .orElseGet(() -> {
+                    LedgerAccount clearing = new LedgerAccount();
+                    clearing.setFamilyId(familyId);
+                    clearing.setAccountCode(EXPENSE_CLEARING_CODE);
+                    clearing.setName("Expense clearing");
+                    clearing.setAccountKind("LIABILITY");
+                    clearing.setNormalBalance("CREDIT");
                     clearing.setCreatedAt(now);
                     clearing.setUpdatedAt(now);
                     return ledgerAccountRepository.save(clearing);

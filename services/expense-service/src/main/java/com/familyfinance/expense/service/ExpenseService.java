@@ -12,6 +12,7 @@ import com.familyfinance.expense.exception.ResourceNotFoundException;
 import com.familyfinance.expense.repository.ExpenseCategoryRepository;
 import com.familyfinance.expense.repository.ExpenseRepository;
 import com.familyfinance.expense.repository.OutboxEventRepository;
+import com.familyfinance.expense.security.FamilyAuthorizationClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +27,25 @@ import java.util.UUID;
 public class ExpenseService {
 
     public static final String EVENT_EXPENSE_PAYMENT_REQUESTED = "ExpensePaymentRequested";
+    public static final String REF_PREFIX = "expense:";
+    public static final String IDEMPOTENCY_PREFIX = "expense-pay:";
+    public static final String PERMISSION_EXPENSE_CREATE = "expense.create";
 
     private final ExpenseRepository repository;
     private final ExpenseCategoryRepository categoryRepository;
     private final OutboxEventRepository outboxEventRepository;
+    private final FamilyAuthorizationClient familyAuthorizationClient;
 
     public ExpenseService(
             ExpenseRepository repository,
             ExpenseCategoryRepository categoryRepository,
-            OutboxEventRepository outboxEventRepository
+            OutboxEventRepository outboxEventRepository,
+            FamilyAuthorizationClient familyAuthorizationClient
     ) {
         this.repository = repository;
         this.categoryRepository = categoryRepository;
         this.outboxEventRepository = outboxEventRepository;
+        this.familyAuthorizationClient = familyAuthorizationClient;
     }
 
     @Transactional(readOnly = true)
@@ -79,12 +86,23 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseResponse submitForPayment(UUID expenseId, SubmitExpensePaymentRequest request) {
-        Expense expense = repository.findById(expenseId)
+    public ExpenseResponse submitForPayment(
+            UUID expenseId, SubmitExpensePaymentRequest request, UUID actorUserProfileId) {
+        Expense expense = repository.findByIdForUpdate(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense", expenseId));
+        familyAuthorizationClient.requirePermission(
+                expense.getFamilyId(), actorUserProfileId, PERMISSION_EXPENSE_CREATE);
+
+        ExpenseStatus current = ExpenseStatus.valueOf(expense.getStatus());
+        if (current == ExpenseStatus.PENDING_WALLET || current == ExpenseStatus.PAID) {
+            throw new BusinessException(
+                    "Expense already " + current + "; cannot submit payment again",
+                    HttpStatus.CONFLICT);
+        }
+
         transition(expense, ExpenseStatus.SUBMITTED_FOR_PAYMENT);
         expense.setWalletId(request.walletId());
-        expense.setPaymentReference("expense:" + expense.getId());
+        expense.setPaymentReference(REF_PREFIX + expense.getId());
         expense.setUpdatedAt(Instant.now());
         transition(expense, ExpenseStatus.PENDING_WALLET);
 
@@ -93,8 +111,9 @@ public class ExpenseService {
         payload.put("familyId", expense.getFamilyId().toString());
         payload.put("walletId", request.walletId().toString());
         payload.put("amount", expense.getAmountTotal());
+        payload.put("currencyCode", "VND");
         payload.put("referenceId", expense.getPaymentReference());
-        payload.put("idempotencyKey", "expense-pay:" + expense.getId());
+        payload.put("idempotencyKey", IDEMPOTENCY_PREFIX + expense.getId());
 
         OutboxEvent outbox = new OutboxEvent();
         outbox.setEventType(EVENT_EXPENSE_PAYMENT_REQUESTED);
@@ -108,26 +127,71 @@ public class ExpenseService {
         return toResponse(repository.save(expense));
     }
 
+    /**
+     * Apply WalletDebitPosted for EXPENSE_PAYMENT. Idempotent when already PAID.
+     * Only Wallet ledger outcomes may complete payment — not a client shortcut.
+     */
     @Transactional
-    public ExpenseResponse markPaid(UUID expenseId) {
-        Expense expense = repository.findById(expenseId)
+    public ExpenseResponse applyWalletDebitPosted(
+            UUID expenseId,
+            UUID eventFamilyId,
+            UUID eventWalletId,
+            long eventAmount,
+            String referenceId,
+            String transactionType,
+            UUID transactionId
+    ) {
+        if (!"EXPENSE_PAYMENT".equals(transactionType)) {
+            throw new BusinessException("Not an expense payment debit", HttpStatus.BAD_REQUEST);
+        }
+        Expense expense = repository.findByIdForUpdate(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense", expenseId));
-        if (ExpenseStatus.valueOf(expense.getStatus()) == ExpenseStatus.PAID) {
+
+        if (ExpenseStatus.PAID.name().equals(expense.getStatus())) {
             return toResponse(expense);
         }
+
+        String expectedRef = expense.getPaymentReference() != null
+                ? expense.getPaymentReference()
+                : REF_PREFIX + expense.getId();
+        if (!expectedRef.equals(referenceId)) {
+            throw new BusinessException("referenceId mismatch for expense payment", HttpStatus.CONFLICT);
+        }
+        if (!expense.getFamilyId().equals(eventFamilyId)) {
+            throw new BusinessException("familyId mismatch for expense payment", HttpStatus.CONFLICT);
+        }
+        if (expense.getWalletId() == null || !expense.getWalletId().equals(eventWalletId)) {
+            throw new BusinessException("walletId mismatch for expense payment", HttpStatus.CONFLICT);
+        }
+        if (expense.getAmountTotal() == null || expense.getAmountTotal() != eventAmount) {
+            throw new BusinessException("amount mismatch for expense payment", HttpStatus.CONFLICT);
+        }
+
         transition(expense, ExpenseStatus.PAID);
+        if (transactionId != null) {
+            String note = "ledgerTx=" + transactionId;
+            expense.setNotes(expense.getNotes() == null || expense.getNotes().isBlank()
+                    ? note
+                    : expense.getNotes() + "\n" + note);
+        }
         expense.setUpdatedAt(Instant.now());
         return toResponse(repository.save(expense));
     }
 
     @Transactional
-    public ExpenseResponse markFailed(UUID expenseId, String reason) {
-        Expense expense = repository.findById(expenseId)
+    public ExpenseResponse applyPaymentFailed(UUID expenseId, String errorCode) {
+        Expense expense = repository.findByIdForUpdate(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense", expenseId));
-        transition(expense, ExpenseStatus.FAILED);
-        if (reason != null && !reason.isBlank()) {
-            expense.setNotes((expense.getNotes() == null ? "" : expense.getNotes() + "\n") + "payment failed: " + reason);
+        if (ExpenseStatus.FAILED.name().equals(expense.getStatus())) {
+            return toResponse(expense);
         }
+        if (ExpenseStatus.PAID.name().equals(expense.getStatus())) {
+            return toResponse(expense);
+        }
+        transition(expense, ExpenseStatus.FAILED);
+        String safe = errorCode == null || errorCode.isBlank() ? "PAYMENT_FAILED" : errorCode;
+        expense.setNotes((expense.getNotes() == null ? "" : expense.getNotes() + "\n")
+                + "payment failed: " + safe);
         expense.setUpdatedAt(Instant.now());
         return toResponse(repository.save(expense));
     }
