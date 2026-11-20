@@ -51,7 +51,7 @@ export async function beginLoginRedirect(): Promise<void> {
     client_id: KEYCLOAK_CLIENT_ID,
     redirect_uri: appRedirectUri(),
     response_type: 'code',
-    scope: 'openid profile email offline_access',
+    scope: 'openid profile email',
     state,
     code_challenge: challenge,
     code_challenge_method: 'S256',
