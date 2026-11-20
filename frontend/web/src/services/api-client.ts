@@ -51,9 +51,16 @@ export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-async function ensureFreshAccessToken(): Promise<string | null> {
+/**
+ * Prefer session/refresh hook when configured, but fall back to {@link getAccessToken}
+ * so OIDC callback can call APIs after {@link setAccessToken} before AuthSession is persisted.
+ */
+export async function ensureFreshAccessToken(): Promise<string | null> {
   if (USE_MOCK) return getAccessToken()
-  if (ensureAccessTokenFn) return ensureAccessTokenFn()
+  if (ensureAccessTokenFn) {
+    const fromHook = await ensureAccessTokenFn()
+    if (fromHook) return fromHook
+  }
   return getAccessToken()
 }
 
@@ -87,6 +94,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError('Phiên đăng nhập hết hạn', 401)
   }
 
+  // Real auth failure (including skipAuthRetry provision calls). Never treat as "missing profile".
   if (response.status === 401) {
     setAccessToken(null)
     unauthorizedHandler?.()

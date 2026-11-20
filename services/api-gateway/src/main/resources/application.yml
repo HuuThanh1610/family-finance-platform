@@ -74,5 +74,7 @@ management:
 
 # Dev note: set SECURITY_ENABLED=false to bypass JWT while Keycloak realm is being imported.
 familyfinance:
+  # Must match spring.cloud.gateway.globalcors allowedOrigins (no wildcard with credentials).
+  web-origin: ${WEB_ORIGIN:http://localhost:5173}
   security:
     enabled: ${SECURITY_ENABLED:false}

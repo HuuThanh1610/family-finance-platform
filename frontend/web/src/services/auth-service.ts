@@ -1,7 +1,7 @@
 import { delay } from '@/lib/utils'
 import { parseJwtPayload } from '@/lib/jwt'
 import { currentUser } from '@/mocks/data'
-import { ApiError, USE_MOCK, apiRequest, setAccessToken } from '@/services/api-client'
+import { ApiError, USE_MOCK, apiRequest, getAccessToken, setAccessToken } from '@/services/api-client'
 import {
   beginLoginRedirect,
   buildLogoutRedirect,
@@ -84,13 +84,17 @@ function sessionFromOidc(tokens: OidcTokens, user: UserProfile): AuthSession {
   }
 }
 
+/**
+ * Load or create the Profile Service user for an OIDC access token.
+ * Only HTTP 404 means "missing profile" → provision. HTTP 401 is an auth failure.
+ */
 async function provisionIfNeeded(tokens: OidcTokens): Promise<UserProfile> {
   setAccessToken(tokens.accessToken)
   try {
     const me = await apiRequest<BackendProfile>('/api/v1/profiles/me', { skipAuthRetry: true })
     return mapProfile(me)
   } catch (err) {
-    if (!(err instanceof ApiError) || (err.status !== 404 && err.status !== 401)) {
+    if (!(err instanceof ApiError) || err.status !== 404) {
       throw err
     }
     const claims = parseJwtPayload(tokens.accessToken)
@@ -100,7 +104,7 @@ async function provisionIfNeeded(tokens: OidcTokens): Promise<UserProfile> {
       displayName: claims.name ?? claims.preferred_username ?? 'Người dùng',
     }
     if (!body.keycloakSub) {
-      throw err instanceof Error ? err : new Error('Không đọc được JWT sub')
+      throw new Error('Không đọc được JWT sub')
     }
     const created = await apiRequest<BackendProfile>('/api/v1/profiles/provision', {
       method: 'POST',
@@ -122,13 +126,14 @@ export const authService = {
 
   async ensureAccessToken(): Promise<string | null> {
     const session = readSession()
-    if (!session?.token) return null
+    // OIDC callback stores the bearer in ff.accessToken before AuthSession exists.
+    if (!session?.token) return getAccessToken()
     if (session.mock || !session.refreshToken) return session.token
     if (!tokensNeedRefresh(session.expiresAt)) return session.token
 
     const ok = await this.tryRefreshSession()
-    if (!ok) return session.token
-    return readSession()?.token ?? null
+    if (!ok) return getAccessToken() ?? session.token
+    return readSession()?.token ?? getAccessToken()
   },
 
   async tryRefreshSession(): Promise<boolean> {
