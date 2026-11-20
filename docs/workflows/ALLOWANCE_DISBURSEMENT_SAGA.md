@@ -1,6 +1,17 @@
 # Allowance Disbursement Saga
 
-## Happy path
+## Implementation status (Package F audit)
+
+| Piece | Status |
+|-------|--------|
+| Budget approve → outbox `AllowanceDisbursementRequested` | Implemented |
+| Wallet `WalletApplicationService.disburseAllowance` + Completed/Failed outbox | Implemented (callable in-process / tests) |
+| Wallet `@KafkaListener` for `AllowanceDisbursementRequested` | **Missing** — E2E Kafka path incomplete |
+| Budget `WalletDisbursementOutcomeConsumer` | Implemented |
+
+Designed happy path below remains the target design; do not demo automatic Kafka disbursement until the wallet listener exists.
+
+## Happy path (target design)
 
 1. OWNER/PARENT calls approve → Budget authz `budget.approve`.
 2. Same TX: status `APPROVED_PENDING_DISBURSEMENT`, approval history, outbox `AllowanceDisbursementRequested`.

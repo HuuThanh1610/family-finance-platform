@@ -1,6 +1,8 @@
 # Architecture Overview
 
-Family Finance là monorepo microservices theo **Database-per-Service**.
+Family Finance is a monorepo of microservices with **Database-per-Service**.
+
+> Prefer [docs/portfolio/ARCHITECTURE_WALKTHROUGH.md](../portfolio/ARCHITECTURE_WALKTHROUGH.md) and verified source when older notes conflict.
 
 ## Bounded contexts
 
@@ -18,23 +20,26 @@ Family Finance là monorepo microservices theo **Database-per-Service**.
 
 ## Principles
 
-- Không có foreign key xuyên database.
-- Giao tiếp đồng bộ qua REST; bất đồng bộ qua domain events (Kafka) — schema outbox/inbox đã chuẩn bị.
-- Số tiền VND dùng `BIGINT`; identity phân tán dùng `UUID`.
-- Web UI chạy mock adapters cho đến khi API sẵn sàng.
+- No foreign keys across databases.
+- Sync via REST; async via domain events (Kafka) with transactional Outbox/Inbox.
+- VND amounts as `BIGINT`; distributed ids as `UUID`.
+- Web UI talks to API Gateway (`VITE_USE_MOCK=false` by default in `.env.example`).
+- Wallet Service alone posts the ledger and owns balance projections.
 
 ## C4 — System Context
 
 ```mermaid
 C4Context
 title Family Finance — System Context
-Person(member, "Thành viên gia đình", "Quản lý ví, ngân sách, chi tiêu")
-System(ff, "Family Finance Platform", "Web + microservices quản lý tài chính hộ gia đình")
-System_Ext(momo, "MoMo Sandbox", "Cổng thanh toán (chưa kết nối)")
-System_Ext(keycloak, "Keycloak", "Identity Provider OIDC")
-Rel(member, ff, "Sử dụng qua Web UI")
-Rel(ff, keycloak, "Xác thực JWT (planned)")
-Rel(ff, momo, "Tạo đơn / webhook (planned)")
+Person(member, "Family member", "Wallets, budgets, expenses")
+System(ff, "Family Finance Platform", "Web + microservices (portfolio/demo)")
+System_Ext(momo, "MoMo Sandbox", "Optional payment adapter (not production)")
+System_Ext(fake, "FakePayment", "Deterministic local provider")
+System_Ext(keycloak, "Keycloak", "OIDC Identity Provider")
+Rel(member, ff, "Uses Web UI / API Gateway")
+Rel(ff, keycloak, "Validates JWT (Resource Server)")
+Rel(ff, momo, "Create order / IPN (sandbox credentials)")
+Rel(ff, fake, "Create order / fake IPN (local demo)")
 ```
 
 ## C4 — Containers
@@ -43,38 +48,40 @@ Rel(ff, momo, "Tạo đơn / webhook (planned)")
 C4Container
 title Family Finance — Containers
 Person(user, "User")
-Container(web, "Web App", "React/Vite", "UI tiếng Việt, mock API adapters")
-Container(family, "family-service", "Spring Boot", "Thành viên & vai trò")
-Container(wallet, "wallet-service", "Spring Boot", "Ví & double-entry ledger")
+Container(web, "Web App", "React/Vite", "UI via Gateway")
+Container(gw, "api-gateway", "Spring Cloud Gateway", "JWT + routing")
+Container(family, "family-service", "Spring Boot", "Members & permissions")
+Container(wallet, "wallet-service", "Spring Boot", "Wallets & double-entry ledger")
 Container(payment, "payment-service", "Spring Boot", "Top-up / provider abstraction")
-Container(budget, "budget-service", "Spring Boot", "Ngân sách & allowance")
+Container(budget, "budget-service", "Spring Boot", "Budgets & allowance")
 ContainerDb(pg, "PostgreSQL", "9 databases")
 Container_Ext(kc, "Keycloak")
 Container_Ext(kafka, "Kafka")
-Rel(user, web, "HTTPS")
-Rel(web, family, "REST")
-Rel(web, wallet, "REST")
-Rel(web, payment, "REST")
-Rel(web, budget, "REST")
+Rel(user, web, "HTTPS/local")
+Rel(web, gw, "REST")
+Rel(gw, family, "REST")
+Rel(gw, wallet, "REST")
+Rel(gw, payment, "REST")
+Rel(gw, budget, "REST")
 Rel(family, pg, "JDBC")
 Rel(wallet, pg, "JDBC")
 Rel(payment, pg, "JDBC")
 Rel(budget, pg, "JDBC")
-Rel(family, kc, "JWT validate")
+Rel(gw, kc, "JWT validate")
 Rel(wallet, kafka, "Outbox events")
+Rel(payment, kafka, "Outbox events")
 ```
 
 ## Bounded Context Map
 
 ```mermaid
 flowchart LR
-  Profile[Profile] -.-> Family
+  Profile -.-> Family
   Family --> Wallet
   Family --> Budget
-  Wallet --> Payment
+  Payment --> Wallet
   Budget --> Wallet
   Expense --> Wallet
-  Expense --> Budget
   Household --> Notification
   Budget --> Notification
   Payment --> Notification
@@ -83,4 +90,12 @@ flowchart LR
   Household --> Analytics
 ```
 
-Quan hệ là **logical** (events/API), không phải FK.
+Relations are **logical** (events/API), not FKs.
+
+## Portfolio docs
+
+- [README](../../README.md)
+- [Demo scenario](../portfolio/DEMO_SCENARIO.md)
+- [Evidence matrix](../portfolio/EVIDENCE_MATRIX.md)
+- [Kafka contracts](../events/KAFKA_CONTRACTS.md)
+- [Analytics metrics](analytics-metrics.md)

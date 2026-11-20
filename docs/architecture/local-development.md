@@ -44,9 +44,11 @@ npm install
 npm run dev
 ```
 
-Mở http://localhost:5173 — đăng nhập demo bất kỳ email/password (≥6 ký tự).
+Mở http://localhost:5173. Với Compose `full` + Keycloak, dùng client PKCE / demo users trong [infra/keycloak/README.md](../../infra/keycloak/README.md).
 
-`VITE_USE_MOCK=true` → dữ liệu mock, không cần backend.
+`.env.example` đặt `VITE_USE_MOCK=false` (API thật qua Gateway). Đặt `VITE_USE_MOCK=true` chỉ khi muốn UI mock không cần backend.
+
+Demo API walkthrough: [docs/portfolio/DEMO_SCENARIO.md](../portfolio/DEMO_SCENARIO.md).
 
 ## 3. Backend (per service)
 
@@ -62,3 +64,5 @@ Swagger: `http://localhost:8082/swagger-ui.html`
 - `.env` không commit.
 - MoMo credentials để trống cho đến khi owner triển khai sandbox.
 - Không hardcode production secrets.
+- Compose profile `full` bật `SECURITY_ENABLED` / `KAFKA_ENABLED` theo `infra/compose/apps.yml`; IDE `application.yml` vẫn mặc định `false` cho unit test.
+- Smoke FakePayment→wallet: `SECURITY_ENABLED=true KAFKA_ENABLED=true ./scripts/runtime-e2e-smoke.sh`.
