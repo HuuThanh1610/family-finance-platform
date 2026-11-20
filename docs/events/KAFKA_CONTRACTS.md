@@ -76,10 +76,11 @@ Sequence: approve (Budget) → `AllowanceDisbursementRequested` → Wallet ledge
 |-------|--------|
 | Topic | `budget.domain.events` |
 | Producer | budget-service outbox (`OutboxPublisher`) |
-| Consumer | wallet-service (`AllowanceDisbursementRequestedConsumer`) |
+| Intended consumer | wallet-service Kafka listener for `AllowanceDisbursementRequested` |
 | Aggregate | `allowance_request` / request id |
 | Business idempotency | `allowance-disbursement:{requestId}` (ledger) |
 | Event idempotency | wallet `inbox_events.event_id` |
+| Implementation note | Budget **produces** this event; Wallet exposes `WalletApplicationService.disburseAllowance`, but as of Package F audit there is **no** `@KafkaListener` consumer class in wallet-service (unlike `ExpensePaymentRequestedConsumer`). E2E Kafka auto-disbursement is incomplete. |
 
 ```json
 {

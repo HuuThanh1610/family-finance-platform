@@ -41,7 +41,7 @@ docker compose down -v
 ## Ghi chú
 
 - Kafka: client trong compose dùng `kafka:29092`; từ host dùng `localhost:9092` (listener `EXTERNAL`).
-- `KAFKA_ENABLED=false` mặc định — bật trong `.env` khi test saga.
+- IDE/`application.yml` mặc định `KAFKA_ENABLED=false`; Compose profile `full` thường bật Kafka/security qua `apps.yml`. Kiểm tra `.env` trước khi demo saga.
 - Image Spring build multi-stage từ `services/<service>/Dockerfile`; không chỉnh Flyway migrations.
 - Grafana dashboard dùng metric chuẩn Micrometer/Spring Boot (`http_server_requests_seconds_count`, `jvm_memory_used_bytes`, …).
 - OTLP Collector (distroless): readiness `curl -s http://localhost:13133/` từ host khi port được publish (tuỳ chọn map `13133:13133`).

@@ -1,45 +1,45 @@
 # Sequence Diagrams
 
-## Payment top-up (planned)
+Canonical workflow docs supersede older “planned” notes:
+
+- [Payment top-up saga](../workflows/PAYMENT_TOPUP_SAGA.md) — **implemented** (FakePayment + optional MoMo Sandbox)
+- [Expense wallet settlement](../workflows/EXPENSE_WALLET_SETTLEMENT_SAGA.md) — **implemented**
+- [Allowance disbursement](../workflows/ALLOWANCE_DISBURSEMENT_SAGA.md) — partial (Kafka consumer gap on wallet)
+- Portfolio demo: [DEMO_SCENARIO.md](../portfolio/DEMO_SCENARIO.md)
+
+## Payment top-up (FakePayment)
 
 ```mermaid
 sequenceDiagram
   actor User
-  participant Web
-  participant Payment as payment-service
-  participant Provider as MoMo Sandbox
-  participant Wallet as wallet-service
-  User->>Web: Chọn số tiền / provider
-  Web->>Payment: POST /api/payments (idempotency-key)
-  Payment->>Payment: Tạo payment_orders PENDING
-  Payment->>Provider: Create payment (signed)
-  Provider-->>Payment: payUrl / orderId
-  Payment-->>Web: checkout info
-  Provider-->>Payment: Webhook callback
-  Note over Payment: Verify signature + dedupe webhook_inbox
-  Payment->>Wallet: Credit wallet (via event/API)
-  Note over Wallet: Double-entry post + balance update
-  Payment-->>Web: STATUS SUCCESS
+  participant GW as api-gateway
+  participant Pay as payment-service
+  participant K as Kafka
+  participant Wal as wallet-service
+  User->>GW: POST /api/v1/payments (FAKE_PAYMENT)
+  GW->>Pay: create order
+  User->>GW: POST /api/v1/payments/fake/ipn
+  GW->>Pay: mark provider paid + outbox
+  Pay->>K: PaymentProviderPaid
+  K->>Wal: credit PAYMENT_TOPUP
+  Wal->>K: WalletCreditPosted
+  K->>Pay: COMPLETED
 ```
 
-**Chưa triển khai:** signing, webhook verify, wallet credit, duplicate callback protection.
-
-## Wallet transfer (planned)
+## Expense settlement
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant Web
-  participant Wallet as wallet-service
-  User->>Web: Transfer A → B
-  Web->>Wallet: POST /transfers (idempotency-key)
-  Wallet->>Wallet: Begin TX
-  Wallet->>Wallet: Lock/version balances
-  Wallet->>Wallet: Insert ledger_transactions + entries
-  Wallet->>Wallet: Verify Σ debit = Σ credit
-  Wallet->>Wallet: Update wallet_balances
-  Wallet->>Wallet: Write outbox_events
-  Wallet-->>Web: Transfer result
+  participant Exp as expense-service
+  participant K as Kafka
+  participant Wal as wallet-service
+  Exp->>K: ExpensePaymentRequested
+  K->>Wal: EXPENSE_PAYMENT journal
+  alt success
+    Wal->>K: WalletDebitPosted
+    K->>Exp: PAID
+  else permanent failure
+    Wal->>K: ExpensePaymentFailed
+    K->>Exp: FAILED
+  end
 ```
-
-**Chưa triển khai:** posting service, locking strategy, consistency verifier.
