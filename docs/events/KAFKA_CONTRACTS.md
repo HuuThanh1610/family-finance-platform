@@ -48,6 +48,21 @@ Wallet credits with idempotency key `pay-credit:{paymentOrderId}`.
 
 Emitted after ledger posts `PAYMENT_TOPUP`. Payment Service transitions `CREDIT_PENDING` → `COMPLETED`.
 
+Payload (ledger outbox): `transactionId`, `familyId`, `walletId?`, `referenceId`, `transactionType=PAYMENT_TOPUP`, `amount`.
+
+## Analytics realized cashflow (authoritative events)
+
+Analytics consumes `payment.provider.events`, `wallet.ledger.events`, `budget.domain.events`, and `expense.domain.events`, but **realized** income/expense use Wallet ledger postings only.
+
+| Business operation | Request / intent | Authoritative posting | Analytics treatment |
+|--------------------|------------------|-----------------------|---------------------|
+| Wallet top-up | `PaymentProviderPaid` | `WalletCreditPosted` (`PAYMENT_TOPUP`) | Income **once** (credit only) |
+| External expense | `ExpensePaymentRequested` | `WalletDebitPosted` (`EXPENSE_PAYMENT`) | Expense **once** (debit only) |
+| Internal transfer / allowance | `AllowanceDisbursementRequested` | `WalletTransferPosted` (`INTERNAL_TRANSFER`) | **Not** household income/expense |
+| Failed / pending | Failure or request events | None | No realized effect |
+
+Idempotency: `inbox_events.event_id` + `realized_financial_postings.ledger_transaction_id`. See `docs/architecture/analytics-metrics.md`.
+
 ## Allowance disbursement saga
 
 Sequence: approve (Budget) → `AllowanceDisbursementRequested` → Wallet ledger transfer →
