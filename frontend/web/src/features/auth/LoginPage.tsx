@@ -77,7 +77,7 @@ export function LoginPage() {
         ) : (
           <div className="space-y-3">
             <p className="text-[13px] text-fg-secondary">
-              Bạn sẽ được chuyển tới Keycloak để đăng nhập an toàn. Phiên có refresh token (offline_access).
+              Bạn sẽ được chuyển tới Keycloak để đăng nhập an toàn (OIDC Authorization Code + PKCE).
             </p>
             <Button
               className="w-full"

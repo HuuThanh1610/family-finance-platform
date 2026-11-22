@@ -32,14 +32,20 @@ function storePkce(verifier: string, state: string) {
   sessionStorage.setItem(STATE_KEY, state)
 }
 
-function consumePkce(): { verifier: string; state: string } | null {
+function peekPkce(): { verifier: string; state: string } | null {
   const verifier = sessionStorage.getItem(PKCE_KEY)
   const state = sessionStorage.getItem(STATE_KEY)
-  sessionStorage.removeItem(PKCE_KEY)
-  sessionStorage.removeItem(STATE_KEY)
   if (!verifier || !state) return null
   return { verifier, state }
 }
+
+function clearPkce() {
+  sessionStorage.removeItem(PKCE_KEY)
+  sessionStorage.removeItem(STATE_KEY)
+}
+
+/** Dedupe StrictMode / effect re-entry: same auth code shares one in-flight exchange. */
+let codeExchangeInflight: { code: string; promise: Promise<OidcTokens> } | null = null
 
 export async function beginLoginRedirect(): Promise<void> {
   const verifier = generateCodeVerifier()
@@ -94,20 +100,43 @@ export async function exchangeAuthorizationCode(
   code: string,
   state: string | null,
 ): Promise<OidcTokens> {
-  const pkce = consumePkce()
-  if (!pkce || (state && pkce.state !== state)) {
-    throw new Error('Phiên OIDC không hợp lệ (state/PKCE)')
+  if (codeExchangeInflight?.code === code) {
+    return codeExchangeInflight.promise
   }
 
-  const body = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: KEYCLOAK_CLIENT_ID,
-    code,
-    redirect_uri: appRedirectUri(),
-    code_verifier: pkce.verifier,
-  })
+  const promise = (async () => {
+    const pkce = peekPkce()
+    if (!pkce || (state && pkce.state !== state)) {
+      throw new Error('Phiên OIDC không hợp lệ (state/PKCE)')
+    }
 
-  return requestToken(body)
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: KEYCLOAK_CLIENT_ID,
+      code,
+      redirect_uri: appRedirectUri(),
+      code_verifier: pkce.verifier,
+    })
+
+    try {
+      const tokens = await requestToken(body)
+      clearPkce()
+      return tokens
+    } catch (err) {
+      // Keep PKCE only for in-flight dedupe failures; clear on definitive auth errors.
+      clearPkce()
+      throw err
+    }
+  })()
+
+  codeExchangeInflight = { code, promise }
+  try {
+    return await promise
+  } finally {
+    if (codeExchangeInflight?.code === code) {
+      codeExchangeInflight = null
+    }
+  }
 }
 
 export async function refreshTokens(refreshToken: string): Promise<OidcTokens> {

@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LoadingState } from '@/components/common/LoadingState'
 import {
@@ -55,32 +63,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const login = useCallback(async (input: LoginInput) => {
+    const next = await authService.login(input)
+    setSession(next)
+  }, [])
+
+  const register = useCallback(async (input: RegisterInput) => {
+    const next = await authService.register(input)
+    setSession(next)
+  }, [])
+
+  const beginOidcLogin = useCallback(async () => {
+    await authService.beginOidcLogin()
+  }, [])
+
+  // Stable identity — must not retrigger OidcCallbackPage when session updates.
+  const completeOidcLogin = useCallback(async (code: string, state: string | null) => {
+    const next = await authService.completeOidcLogin(code, state)
+    setSession(next)
+  }, [])
+
+  const logout = useCallback(() => {
+    authService.logout()
+    setSession(null)
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
       isAuthenticated: Boolean(session),
       bootstrapping,
-      async login(input) {
-        const next = await authService.login(input)
-        setSession(next)
-      },
-      async register(input) {
-        const next = await authService.register(input)
-        setSession(next)
-      },
-      async beginOidcLogin() {
-        await authService.beginOidcLogin()
-      },
-      async completeOidcLogin(code, state) {
-        const next = await authService.completeOidcLogin(code, state)
-        setSession(next)
-      },
-      logout() {
-        authService.logout()
-        setSession(null)
-      },
+      login,
+      register,
+      beginOidcLogin,
+      completeOidcLogin,
+      logout,
     }),
-    [session, bootstrapping],
+    [session, bootstrapping, login, register, beginOidcLogin, completeOidcLogin, logout],
   )
 
   if (bootstrapping) {
