@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -12,9 +12,12 @@ export function OidcCallbackPage() {
   const { completeOidcLogin } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  // React StrictMode remounts effects in dev; PKCE verifier is single-use.
+  const exchangeStarted = useRef(false)
 
   useEffect(() => {
     if (USE_MOCK) return
+    if (exchangeStarted.current) return
     const code = params.get('code')
     const state = params.get('state')
     const oauthError = params.get('error_description') ?? params.get('error')
@@ -26,6 +29,7 @@ export function OidcCallbackPage() {
       setError('Thiếu authorization code từ Keycloak')
       return
     }
+    exchangeStarted.current = true
     void (async () => {
       try {
         await completeOidcLogin(code, state)
